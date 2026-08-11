@@ -32,10 +32,25 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 
 </script>
 <style>
-  :root {
+    :root {
+    --bg: #f1f5f9;
+    --panel: #ffffff;
+    --panel2: #f8fafc;
+    --input: #ffffff;
+    --border: #cbd5e1;
+    --text: #0f172a;
+    --muted: #64748b;
+    --accent: #4f46e5;
+    --accent2: #0891b2;
+    --ok: #15803d;
+    --warn: #b45309;
+    --bad: #dc2626;
+  }
+  :root[data-theme="dark"] {
     --bg: #0f172a;
     --panel: #1e293b;
     --panel2: #273449;
+    --input: #0b1220;
     --border: #334155;
     --text: #e2e8f0;
     --muted: #94a3b8;
@@ -45,6 +60,329 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     --warn: #f59e0b;
     --bad: #ef4444;
   }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    padding: 14px 22px;
+    background: linear-gradient(90deg, #1e1b4b 0%, var(--bg) 70%);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  header h1 { font-size: 17px; margin: 0; letter-spacing: 0.2px; }
+  header .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  header .right { display: flex; gap: 8px; align-items: center; }
+
+  .key-row { display: flex; gap: 6px; align-items: center; font-size: 12px; }
+  .key-row input { width: 220px; padding: 5px 8px; background: var(--input); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+  .key-row .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #334155; color: var(--muted); }
+  .key-row .pill.on { background: #14532d; color: #bbf7d0; }
+
+  main {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+    height: calc(100vh - 58px);
+  }
+  .tabbar { display:flex; gap:4px; flex-wrap:wrap; align-items:center; }
+  .tabbar button { background:var(--panel2); color:var(--muted); border:1px solid var(--border); border-radius:8px 8px 0 0; padding:8px 14px; font:inherit; font-size:13px; cursor:pointer; }
+  .tabbar button.active { background:var(--panel); color:var(--text); font-weight:700; }
+  .tabbar #splitBtn { border-radius:8px; font-size:12px; padding:6px 12px; margin-left:auto; }
+  .content-row { display:flex; gap:10px; flex:1; min-height:0; }
+  .content-row > .panel { display:none; }
+  .content-row > .panel.show { display:flex; flex:1; min-width:0; }
+  .mode-toggle { display:none !important; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .panel header.subhead {
+    padding: 10px 14px;
+    background: var(--panel2);
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 13px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .panel header.subhead .hint { color: var(--muted); font-weight: 400; font-size: 12px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  thead th {
+    text-align: left;
+    background: var(--panel);
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 11.5px;
+    position: sticky;
+    top: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  tbody td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #1f2937;
+    vertical-align: top;
+  }
+  tbody tr.flash {
+    animation: flash 1.6s ease-out;
+  }
+  @keyframes flash {
+    0% { background: rgba(99, 102, 241, 0.35); }
+    100% { background: transparent; }
+  }
+  .scroll { overflow: auto; flex: 1; }
+
+  .status {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+  .status.ontrack { background: #052e16; color: #86efac; }
+  .status.atrisk { background: #422006; color: #fcd34d; }
+  .status.blocked { background: #450a0a; color: #fca5a5; }
+  .status.complete { background: #1e3a8a; color: #bfdbfe; }
+  .status.notstarted { background: #1f2937; color: #cbd5e1; }
+
+  .pct-bar { background: #1f2937; height: 6px; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+  .pct-bar > div { background: linear-gradient(90deg, var(--accent), var(--accent2)); height: 100%; }
+
+  .content-row > .panel.split { flex: 1 1 0; }
+
+  .chat { padding: 12px 14px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .msg { padding: 8px 12px; border-radius: 8px; max-width: 92%; font-size: 13px; white-space: pre-wrap; }
+  .msg.user { background: #312e81; align-self: flex-end; }
+  .msg.bot { background: var(--panel); border: 1px solid var(--border); align-self: flex-start; }
+  .msg.system { background: var(--input); border: 1px dashed var(--border); align-self: center; color: var(--muted); font-size: 11.5px; }
+  .msg .label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
+  .msg.bot table { font-size: 12px; margin-top: 6px; background: var(--bg); border-radius: 6px; overflow: hidden; }
+  .msg.bot table th, .msg.bot table td { padding: 4px 8px; border-bottom: 1px solid #1f2937; }
+
+  .input-row { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); background: var(--panel2); }
+  .input-row input {
+    flex: 1;
+    padding: 9px 12px;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font: inherit;
+  }
+  .input-row input:focus { outline: none; border-color: var(--accent); }
+  .ask-bar { display:flex; gap:8px; padding:10px 0; }
+  .ask-bar input { flex:1; padding:9px 12px; background:var(--input); border:1px solid var(--border); border-radius:6px; color:var(--text); font:inherit; }
+  .ask-bar input:focus { outline:none; border-color:var(--accent); }
+  .ask-bar button { background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:8px 14px; cursor:pointer; font:inherit; font-weight:600; white-space:nowrap; }
+  .ask-bar button.primary { background:var(--accent); color:#fff; border:0; }
+  .ask-bar button:hover { filter:brightness(1.1); }
+  .ask-ans { margin:0 0 12px; padding:12px 14px; background:var(--panel2); border:1px solid var(--border); border-radius:8px; font-size:13px; line-height:1.6; color:var(--text); }
+  .edit-sec { margin-bottom:6px; }
+  .edit-head { display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:14px; }
+  .edit-head .hint { color:var(--muted); font-weight:400; font-size:12px; flex:1; }
+  .edit-head button, .edit-head select { background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font:inherit; font-size:12px; cursor:pointer; }
+  .edit-head button.primary { background:var(--accent); color:#fff; border:0; font-weight:600; }
+  table.egrid { width:100%; border-collapse:collapse; font-size:12px; }
+  table.egrid th { text-align:left; color:var(--muted); font-weight:600; padding:4px 6px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--panel); }
+  table.egrid td { padding:2px 4px; border-bottom:1px solid #1f2937; }
+  table.egrid input, table.egrid select { width:100%; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:5px; padding:5px 6px; font:inherit; font-size:12px; }
+  table.egrid input:focus, table.egrid select:focus { outline:none; border-color:var(--accent); }
+  table.egrid .del { background:transparent; border:0; color:#fca5a5; cursor:pointer; font-size:14px; padding:2px 6px; }
+  .tl-proj-head { display:flex; align-items:center; gap:10px; margin:14px 0 6px; font-weight:700; font-size:13px; }
+  .tl-proj-head button { background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 9px; font:inherit; font-size:11.5px; cursor:pointer; }
+  .mode-toggle { display: flex; padding: 8px 12px; gap: 6px; border-bottom: 1px solid var(--border); background: var(--panel2); }
+  .mode-toggle button {
+    flex: 1;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 600;
+  }
+  .mode-toggle button.active { background: var(--accent); color: white; border-color: var(--accent); }
+  /* Plan tab's Gantt/Digest lens switch. Deliberately NOT .mode-toggle — that class
+     is globally display:none (it hid the retired mode row) and was suppressing this too. */
+  .plan-toggle { display:flex; gap:6px; flex:0 0 auto; }
+  .plan-toggle button { background:transparent; color:var(--muted); border:1px solid var(--border);
+    border-radius:6px; padding:8px 12px; cursor:pointer; font:inherit; font-weight:600; white-space:nowrap; }
+  .plan-toggle button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  button.primary { background: var(--accent); color: white; border: 0; border-radius: 6px; padding: 8px 16px; cursor: pointer; font: inherit; font-weight: 600; }
+  button.primary:hover { filter: brightness(1.1); }
+
+  .log-list { padding: 6px 10px; overflow-y: auto; flex: 1; font-size: 12px; }
+  .log-list .entry { padding: 8px 10px; border-bottom: 1px solid #1f2937; display: grid; grid-template-columns: 60px 1fr; gap: 10px; }
+  .log-list .entry .when { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .log-list .entry .body { }
+  .log-list .entry .what { color: var(--accent2); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .examples { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 10px; background: var(--panel2); border-bottom: 1px solid var(--border); }
+  .examples button { background: var(--input); border: 1px solid var(--border); color: var(--muted); border-radius: 999px; padding: 4px 10px; font-size: 11.5px; cursor: pointer; }
+  .examples button:hover { color: var(--text); border-color: var(--accent); }
+
+  .footer-note { text-align: center; color: var(--muted); font-size: 11px; padding: 6px; border-top: 1px solid var(--border); background: var(--panel); }
+
+  .dropzone {
+    margin: 12px;
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 22px 18px;
+    text-align: center;
+    color: var(--muted);
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  .dropzone:hover, .dropzone.over {
+    border-color: var(--accent);
+    background: rgba(99,102,241,0.08);
+    color: var(--text);
+  }
+  .dropzone .big { font-size: 22px; margin-bottom: 6px; }
+  .dropzone .row { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+  .dropzone .row button {
+    background: var(--input); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 14px; border-radius: 6px; cursor: pointer; font: inherit; font-size: 12px;
+  }
+  .dropzone .row button:hover { border-color: var(--accent); }
+
+  /* Timeline view */
+  .tl-wrap { overflow: auto; flex: 1; padding: 10px 14px; }
+  .tl-proj { margin-bottom: 16px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--input); }
+  .tl-proj header {
+    padding: 8px 12px; background: var(--panel2); display: flex; gap: 10px; align-items: center; justify-content: space-between;
+    font-size: 12.5px;
+  }
+  .tl-proj header .stats { display: flex; gap: 6px; color: var(--muted); font-size: 11.5px; }
+  .tl-proj header .stats span { padding: 2px 8px; border-radius: 999px; }
+  .tl-proj header .stats .s-c { background: #052e16; color: #86efac; }
+  .tl-proj header .stats .s-p { background: #0c2d6b; color: #93c5fd; }
+  .tl-proj header .stats .s-s { background: #450a0a; color: #fca5a5; }
+  .tl-proj header .stats .s-u { background: #1f2937; color: #cbd5e1; }
+  .tl-grid {
+    display: grid; grid-template-columns: 280px 1fr; font-size: 11.5px;
+  }
+  .tl-grid .head { color: var(--muted); padding: 4px 12px; background: var(--bg); border-bottom: 1px solid #1f2937; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .tl-row { display: contents; }
+  .tl-row .name {
+    padding: 5px 12px; border-bottom: 1px solid #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tl-row .name.summary { font-weight: 700; background: var(--panel); }
+  .tl-row .bar-cell {
+    position: relative; border-bottom: 1px solid #1f2937; background: var(--bg);
+    height: 22px;
+  }
+  .tl-bar {
+    position: absolute; top: 5px; height: 12px; border-radius: 3px;
+  }
+  .tl-bar.c { background: #16a34a; }
+  .tl-bar.p { background: linear-gradient(90deg, #2563eb, #60a5fa); }
+  .tl-bar.s { background: #dc2626; }
+  .tl-bar.u { background: #475569; }
+  .tl-bar .pct { position: absolute; top: 0; left: 0; height: 100%; background: rgba(0,0,0,0.25); border-right: 1px dashed rgba(255,255,255,0.5); }
+  .tl-today {
+    position: absolute; top: 0; bottom: 0; width: 1px; background: #f59e0b; z-index: 2;
+  }
+  .tl-today::before {
+    content: 'today'; position: absolute; top: -16px; left: 2px; color: #f59e0b; font-size: 10px; white-space: nowrap;
+  }
+  .tl-empty {
+    text-align: center; padding: 28px 14px; color: var(--muted); font-size: 12.5px;
+  }
+  .tl-empty button {
+    background: var(--accent); color: white; border: 0; border-radius: 6px;
+    padding: 6px 14px; cursor: pointer; font: inherit; margin-top: 8px;
+  }
+  .tl-legend { display: flex; gap: 10px; padding: 8px 14px; font-size: 11px; color: var(--muted); border-top: 1px solid var(--border); background: var(--panel2); }
+  .tl-legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .tl-legend i { display: inline-block; width: 12px; height: 8px; border-radius: 2px; }
+
+  /* Digest view */
+  .dg-wrap { overflow:auto; flex:1; padding: 14px; }
+  .dg-controls { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+  .dg-controls button {
+    background:var(--input); border:1px solid var(--border); color:var(--muted);
+    border-radius:6px; padding:6px 12px; cursor:pointer; font:inherit; font-size:12px;
+  }
+  .dg-controls button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .dg-range { color:var(--muted); font-size:11.5px; margin-bottom:14px; }
+  .dg-tiles { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-bottom:16px; }
+  .dg-tile {
+    background:var(--input); border:1px solid var(--border); border-radius:8px;
+    padding:10px 12px;
+  }
+  .dg-tile .n { font-size:22pt; font-weight:700; line-height:1; }
+  .dg-tile .l { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.4px; margin-top:4px; }
+  .dg-tile.c .n { color:#86efac; }
+  .dg-tile.p .n { color:#93c5fd; }
+  .dg-tile.s .n { color:#fca5a5; }
+  .dg-tile.d .n { color:#fcd34d; }
+  .dg-section {
+    margin-bottom:18px; border:1px solid var(--border); border-radius:8px; overflow:hidden;
+  }
+  .dg-section header {
+    padding:8px 12px; background: var(--panel2);
+    font-weight:600; font-size:12.5px;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .dg-section header.c { border-left: 3px solid #16a34a; }
+  .dg-section header.p { border-left: 3px solid #2563eb; }
+  .dg-section header.s { border-left: 3px solid #dc2626; }
+  .dg-section header.d { border-left: 3px solid #f59e0b; }
+  .dg-section table { width:100%; border-collapse:collapse; font-size:12px; }
+  .dg-section th { text-align:left; padding:6px 12px; background:var(--bg); color:var(--muted); font-size:10.5px; text-transform:uppercase; letter-spacing:0.4px; }
+  .dg-section td { padding:6px 12px; border-bottom:1px solid #1f2937; }
+  .dg-section tr:last-child td { border-bottom:none; }
+  .dg-empty { padding:14px 12px; color:var(--muted); font-style:italic; font-size:12px; }
+  /* ── Phone layout (also what the Android APK gets) ──────────────
+     Two problems on a narrow screen: the header title wrapped to six
+     lines and ate a third of the viewport, and wide tables pushed the
+     whole PAGE sideways. Fix both: shrink/stack the header, and make
+     every table scroll inside its own box so the body never scrolls
+     horizontally. */
+  @media (max-width: 820px) {
+    header { padding: 8px 12px; gap: 8px; flex-wrap: wrap; align-items: flex-start; }
+    header h1 { font-size: 15px; white-space: nowrap; }
+    header h1 span { display: none; }        /* drop "— Capstone Demo" */
+    header .sub { display: none; }           /* drop the tagline */
+    header .right { width: 100%; }
+    .key-row { flex-wrap: wrap; gap: 6px 8px; width: 100%; }
+    .key-row input { width: 100%; }
+    .key-row #demoDate { width: auto !important; flex: 1 1 130px; }
+
+    /* Tables scroll in their own container; the page itself never does. */
+    .scroll, .dg-wrap, .tl-wrap, .log-list { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { min-width: 640px; }
+    table.egrid { min-width: 720px; }
+
+    /* Without this the input eats the row: the lens toggle collapsed to 0px and
+       the AI Summary button hung 20px past the right edge. */
+    .ask-bar { flex-wrap: wrap; }
+    .ask-bar input { flex: 1 1 100%; min-width: 0; }
+    .ask-bar button, .plan-toggle { flex: 0 0 auto; }
+
+    .tabbar { overflow-x: auto; white-space: nowrap; }
+    .tabbar button { flex: 0 0 auto; }
+  }
+  /* Belt and braces: nothing may push the document sideways. */
+  html, body { max-width: 100%; overflow-x: hidden; }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body {
@@ -66,7 +404,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   header .right { display: flex; gap: 8px; align-items: center; }
 
   .key-row { display: flex; gap: 6px; align-items: center; font-size: 12px; }
-  .key-row input { width: 220px; padding: 5px 8px; background: #0b1220; color: var(--text); border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+  .key-row input { width: 220px; padding: 5px 8px; background: var(--input); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font: inherit; }
   .key-row .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #334155; color: var(--muted); }
   .key-row .pill.on { background: #14532d; color: #bbf7d0; }
 
@@ -156,7 +494,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .msg { padding: 8px 12px; border-radius: 8px; max-width: 92%; font-size: 13px; white-space: pre-wrap; }
   .msg.user { background: #312e81; align-self: flex-end; }
   .msg.bot { background: #1e293b; border: 1px solid var(--border); align-self: flex-start; }
-  .msg.system { background: #0b1220; border: 1px dashed var(--border); align-self: center; color: var(--muted); font-size: 11.5px; }
+  .msg.system { background: var(--input); border: 1px dashed var(--border); align-self: center; color: var(--muted); font-size: 11.5px; }
   .msg .label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
   .msg.bot table { font-size: 12px; margin-top: 6px; background: #0f172a; border-radius: 6px; overflow: hidden; }
   .msg.bot table th, .msg.bot table td { padding: 4px 8px; border-bottom: 1px solid #1f2937; }
@@ -165,7 +503,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .input-row input {
     flex: 1;
     padding: 9px 12px;
-    background: #0b1220;
+    background: var(--input);
     border: 1px solid var(--border);
     border-radius: 6px;
     color: var(--text);
@@ -173,7 +511,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   }
   .input-row input:focus { outline: none; border-color: var(--accent); }
   .ask-bar { display:flex; gap:8px; padding:10px 0; }
-  .ask-bar input { flex:1; padding:9px 12px; background:#0b1220; border:1px solid var(--border); border-radius:6px; color:var(--text); font:inherit; }
+  .ask-bar input { flex:1; padding:9px 12px; background:var(--input); border:1px solid var(--border); border-radius:6px; color:var(--text); font:inherit; }
   .ask-bar input:focus { outline:none; border-color:var(--accent); }
   .ask-bar button { background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:8px 14px; cursor:pointer; font:inherit; font-weight:600; white-space:nowrap; }
   .ask-bar button.primary { background:var(--accent); color:#fff; border:0; }
@@ -187,7 +525,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   table.egrid { width:100%; border-collapse:collapse; font-size:12px; }
   table.egrid th { text-align:left; color:var(--muted); font-weight:600; padding:4px 6px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--panel); }
   table.egrid td { padding:2px 4px; border-bottom:1px solid #1f2937; }
-  table.egrid input, table.egrid select { width:100%; background:#0b1220; color:var(--text); border:1px solid var(--border); border-radius:5px; padding:5px 6px; font:inherit; font-size:12px; }
+  table.egrid input, table.egrid select { width:100%; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:5px; padding:5px 6px; font:inherit; font-size:12px; }
   table.egrid input:focus, table.egrid select:focus { outline:none; border-color:var(--accent); }
   table.egrid .del { background:transparent; border:0; color:#fca5a5; cursor:pointer; font-size:14px; padding:2px 6px; }
   .tl-proj-head { display:flex; align-items:center; gap:10px; margin:14px 0 6px; font-weight:700; font-size:13px; }
@@ -220,7 +558,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .log-list .entry .body { }
   .log-list .entry .what { color: var(--accent2); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
   .examples { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 10px; background: var(--panel2); border-bottom: 1px solid var(--border); }
-  .examples button { background: #0b1220; border: 1px solid var(--border); color: var(--muted); border-radius: 999px; padding: 4px 10px; font-size: 11.5px; cursor: pointer; }
+  .examples button { background: var(--input); border: 1px solid var(--border); color: var(--muted); border-radius: 999px; padding: 4px 10px; font-size: 11.5px; cursor: pointer; }
   .examples button:hover { color: var(--text); border-color: var(--accent); }
 
   .footer-note { text-align: center; color: var(--muted); font-size: 11px; padding: 6px; border-top: 1px solid var(--border); background: var(--panel); }
@@ -243,14 +581,14 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .dropzone .big { font-size: 22px; margin-bottom: 6px; }
   .dropzone .row { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
   .dropzone .row button {
-    background: #0b1220; border: 1px solid var(--border); color: var(--text);
+    background: var(--input); border: 1px solid var(--border); color: var(--text);
     padding: 6px 14px; border-radius: 6px; cursor: pointer; font: inherit; font-size: 12px;
   }
   .dropzone .row button:hover { border-color: var(--accent); }
 
   /* Timeline view */
   .tl-wrap { overflow: auto; flex: 1; padding: 10px 14px; }
-  .tl-proj { margin-bottom: 16px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #0b1220; }
+  .tl-proj { margin-bottom: 16px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--input); }
   .tl-proj header {
     padding: 8px 12px; background: var(--panel2); display: flex; gap: 10px; align-items: center; justify-content: space-between;
     font-size: 12.5px;
@@ -303,14 +641,14 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .dg-wrap { overflow:auto; flex:1; padding: 14px; }
   .dg-controls { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
   .dg-controls button {
-    background:#0b1220; border:1px solid var(--border); color:var(--muted);
+    background:var(--input); border:1px solid var(--border); color:var(--muted);
     border-radius:6px; padding:6px 12px; cursor:pointer; font:inherit; font-size:12px;
   }
   .dg-controls button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
   .dg-range { color:var(--muted); font-size:11.5px; margin-bottom:14px; }
   .dg-tiles { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-bottom:16px; }
   .dg-tile {
-    background:#0b1220; border:1px solid var(--border); border-radius:8px;
+    background:var(--input); border:1px solid var(--border); border-radius:8px;
     padding:10px 12px;
   }
   .dg-tile .n { font-size:22pt; font-weight:700; line-height:1; }
@@ -369,6 +707,38 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   /* Belt and braces: nothing may push the document sideways. */
   html, body { max-width: 100%; overflow-x: hidden; }
 
+
+  /* Study view */
+  .st-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; }
+  .st-card { background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; }
+  .st-card h4 { margin:0 0 8px; font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); font-weight:700; }
+  .st-row { display:flex; justify-content:space-between; gap:10px; padding:3px 0; font-size:12.5px; align-items:center; }
+  .st-row > span:first-child { color:var(--muted); white-space:nowrap; }
+  .st-row input, .st-row select, .st-note textarea {
+    background:var(--input); border:1px solid var(--border); color:var(--text); border-radius:5px;
+    padding:3px 6px; font:inherit; font-size:12px; max-width:150px; text-align:right; }
+  .st-note textarea { max-width:none; width:100%; text-align:left; min-height:52px; resize:vertical; }
+  .st-row input:focus, .st-row select:focus, .st-note textarea:focus { outline:none; border-color:var(--accent); }
+  .st-badge { padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:700; border:1px solid var(--border); }
+  .st-hero { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  .st-hero b { font-size:19px; }
+  .st-deliv { width:100%; border-collapse:collapse; font-size:12.5px; }
+  .st-deliv td { padding:4px 6px; border-bottom:1px solid var(--border); }
+  .st-deliv td:first-child { color:var(--muted); }
+  .st-mini { height:5px; background:var(--input); border-radius:3px; overflow:hidden; min-width:70px; }
+  .st-mini > div { height:100%; background:var(--accent); }
+  #trackerBody tr { cursor:pointer; }
+
+  /* Notes */
+  #noteEditor { min-height:52vh; background:var(--panel); border:1px solid var(--border); border-radius:8px;
+    padding:14px 16px; color:var(--text); font-size:14.5px; line-height:1.6; outline:none; }
+  #noteEditor:focus { border-color:var(--accent); }
+  #noteEditor h3 { margin:.8em 0 .3em; font-size:16px; }
+  #noteEditor ul, #noteEditor ol { padding-left:22px; margin:.4em 0; }
+  #noteEditor:empty:before { content:attr(data-ph); color:var(--muted); }
+  #noteTools button { background:var(--panel2); color:var(--text); border:1px solid var(--border);
+    border-radius:5px; padding:3px 9px; font:inherit; font-size:12px; cursor:pointer; }
+  #noteTools button:hover { border-color:var(--accent); }
 </style>
 </head>
 <body>
@@ -381,18 +751,19 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   <div class="right">
     <div class="key-row">
       <label title="Override 'today' for demo purposes" style="color:var(--muted); font-size:11.5px;">Demo today:</label>
-      <input id="demoDate" type="date" style="width:140px; padding:5px 8px; background:#0b1220; color:var(--text); border:1px solid var(--border); border-radius:6px; font:inherit;" />
-      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v3.2</span>
+      <input id="demoDate" type="date" style="width:140px; padding:5px 8px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:6px; font:inherit;" />
+      <button id="themeBtn" title="Switch between daylight and night" style="background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 9px; font:inherit; font-size:12px; cursor:pointer;">☀︎</button>
+      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v3.3</span>
       <span class="pill" id="modePill">Simulated AI</span>
       <span id="savePill" title="Your data is saved in this browser" style="font-size:11.5px; color:var(--muted); white-space:nowrap;">💾 —</span>
-      <select id="dataMenu" title="Saved data" style="background:#0b1220;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font:inherit;font-size:12px;">
+      <select id="dataMenu" title="Saved data" style="background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font:inherit;font-size:12px;">
         <option value="">Data ▾</option>
         <option value="export">⤓ Export snapshot (.json)</option>
         <option value="import">⤒ Import snapshot…</option>
         <option value="reset">↺ Reset to demo data</option>
       </select>
       <input type="file" id="snapInput" accept=".json" style="display:none" />
-      <select id="providerSel" title="Which AI answers" style="background:#0b1220;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font:inherit;font-size:12px;">
+      <select id="providerSel" title="Which AI answers" style="background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font:inherit;font-size:12px;">
         <option value="gemini">AI: Gemini</option>
         <option value="claude">AI: Claude</option>
       </select>
@@ -406,6 +777,8 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 <main>
   <div class="tabbar" id="tabBar">
     <button data-tab="tracker" class="active">Master Tracker</button>
+    <button data-tab="study">📋 Study</button>
+    <button data-tab="notes">📝 Notes</button>
     <button data-tab="chat">Chat</button>
     <button data-tab="data">✏️ Edit</button>
     <button data-tab="plan">Plan</button>
@@ -413,18 +786,6 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     <button data-tab="log">Activity Log</button>
     <button id="splitBtn" title="Show this tab beside the Master Tracker">⊟ Split with Tracker</button>
   </div>
-
-  <!-- Global ask bar: the Chat box, available at the top of EVERY tab. Runs the exact
-       same pipeline as the Chat tab (aiChat → applyAIResult → log), so an update typed
-       here from the Gantt or the Log is applied identically and shows up in Chat history. -->
-  <div class="ask-bar" id="globalAskBar" style="padding:8px 12px 4px; border-bottom:1px solid var(--border);">
-    <button id="gAttachBtn" title="Attach a file — spreadsheet, timeline, or free-form text. The AI reads it and updates the tracker.">📎</button>
-    <input type="file" id="gAttachInput" accept=".xlsx,.xls,.csv,.txt,.tsv,.md,.json" multiple style="display:none" />
-    <input id="gAsk" placeholder="Ask, update, or 📎 attach a file — from any tab… e.g. 'DEMO-103 is 90%', 'what's overdue?'" />
-    <button class="primary" id="gAskBtn">Ask AI</button>
-    <button id="gAskClear" title="Hide this answer" style="display:none;">✕</button>
-  </div>
-  <div id="gAns" class="ask-ans" style="display:none; margin:8px 12px 0;"></div>
 
   <div class="content-row" id="contentRow">
 
@@ -435,7 +796,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       <span style="display:flex; gap:10px; align-items:center;">
         <span class="hint" id="rowCount">— projects</span>
         <button id="exportBtn" title="Download tracker + log + timelines as .xlsx"
-          style="background:#0b1220; border:1px solid var(--border); color:var(--text); padding:4px 10px; border-radius:6px; font:inherit; font-size:11.5px; cursor:pointer;">
+          style="background:var(--input); border:1px solid var(--border); color:var(--text); padding:4px 10px; border-radius:6px; font:inherit; font-size:11.5px; cursor:pointer;">
           ⤓ Export .xlsx
         </button>
       </span>
@@ -452,6 +813,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
             <th>Project</th>
             <th>Lead</th>
             <th>Phase</th>
+            <th>Study</th>
             <th>Status</th>
             <th>%</th>
             <th>Next Milestone</th>
@@ -466,6 +828,50 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   </section>
 
   <!-- TAB: conversation (chat/upload/timeline/digest/edit) -->
+
+  <!-- TAB: study — the whole record for ONE study in one place: what it is, where it
+       is clinically, how the biometrics deliverables stand, its timeline and its risks. -->
+  <section class="panel" data-pane="study">
+    <header>
+      <span style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        Study
+        <select id="studyPick" style="background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font:inherit;font-size:12px;"></select>
+        <span class="hint" id="studyHint">overall status · dates · deliverables · timeline</span>
+      </span>
+    </header>
+    <div class="scroll" id="studyBody" style="padding:12px 14px;"></div>
+  </section>
+
+  <!-- TAB: notes — a free-form notebook. Type anything; ask the AI to summarise it,
+       pull out actions, or turn it into tracker updates. -->
+  <section class="panel" data-pane="notes">
+    <header>
+      <span style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        Notes
+        <button id="noteNew" title="New page">+ New page</button>
+        <select id="notePick" style="background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font:inherit;font-size:12px;min-width:170px;"></select>
+        <input id="noteTitle" placeholder="Page title" style="background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font:inherit;font-size:12px;" />
+        <span class="hint" id="noteSaved"></span>
+        <span style="margin-left:auto; display:flex; gap:6px; align-items:center;">
+          <button id="noteSum" class="primary">✨ Summarise with AI</button>
+          <button id="noteDel" title="Delete this page">🗑</button>
+        </span>
+      </span>
+    </header>
+    <div style="display:flex; gap:6px; padding:8px 12px 0; flex-wrap:wrap;" id="noteTools">
+      <button data-cmd="bold"><b>B</b></button>
+      <button data-cmd="italic"><i>I</i></button>
+      <button data-cmd="underline"><u>U</u></button>
+      <button data-cmd="insertUnorderedList">• List</button>
+      <button data-cmd="insertOrderedList">1. List</button>
+      <button data-cmd="formatBlock" data-val="h3">H</button>
+      <button data-cmd="removeFormat">✕ format</button>
+    </div>
+    <div class="scroll" style="padding:10px 12px 12px;">
+      <div id="noteEditor" contenteditable="true" spellcheck="true"></div>
+      <div id="noteOut" class="ask-ans" style="display:none; margin-top:10px;"></div>
+    </div>
+  </section>
     <div class="panel" data-pane="convo" id="convoPanel">
       <header class="subhead">
         <span id="convoTitle">Conversation</span>
@@ -516,12 +922,12 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
           <div style="font-size:11.5px; color:var(--muted); margin:4px 0 8px;">On the share drive, list the files and paste them (one per line). Windows: <code>dir /b</code> · Mac/Linux: <code>ls</code>. Only filenames are sent — no files are uploaded.</div>
           <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
             <label style="font-size:12px; color:var(--muted)">Study:</label>
-            <select id="cmpStudy" style="background:#0b1220;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:inherit;"></select>
+            <select id="cmpStudy" style="background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:inherit;"></select>
             <button class="primary" id="pickNamesFolder" title="Chrome/Edge: pick a folder once; the app reads filenames only (no upload)" style="margin-left:auto;">📁 Pick folder (once)</button>
             <button id="rescanBtn" title="Re-scan the folder you already picked — no re-selecting" style="background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font:inherit;font-size:12px;cursor:pointer;display:none;">🔄 Re-scan</button>
           </div>
           <div id="autoScanNote" style="font-size:11px;color:var(--muted);margin-bottom:8px;"></div>
-          <textarea id="fileListText" placeholder="t-disp.rtf&#10;t-demog-saf.rtf&#10;t-basechar-saf.rtf&#10;…" style="width:100%; min-height:90px; background:#0b1220; color:var(--text); border:1px solid var(--border); border-radius:6px; padding:8px; font:inherit; font-size:12px;"></textarea>
+          <textarea id="fileListText" placeholder="t-disp.rtf&#10;t-demog-saf.rtf&#10;t-basechar-saf.rtf&#10;…" style="width:100%; min-height:90px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:8px; font:inherit; font-size:12px;"></textarea>
           <button class="primary" id="compareNamesBtn" style="margin-top:8px;">Compare to tracker</button>
         </div>
 
@@ -538,14 +944,14 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
           <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
             <span id="freeFileName" style="font-size:11.5px; color:var(--muted);"></span>
             <label style="font-size:12px; color:var(--muted); margin-left:auto;">Study:</label>
-            <select id="freeStudy" style="background:#0b1220;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:inherit;"></select>
+            <select id="freeStudy" style="background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:inherit;"></select>
             <label style="font-size:12px; color:var(--muted);">Import as:</label>
-            <select id="freeMode" style="background:#0b1220;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:inherit;">
+            <select id="freeMode" style="background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:inherit;">
               <option value="replace">Replace timeline</option>
               <option value="merge">Merge (add new / update matching)</option>
             </select>
           </div>
-          <textarea id="freeText" placeholder="…or paste the timeline here (Excel range, email table, markdown, plain text — anything)" style="width:100%; min-height:90px; background:#0b1220; color:var(--text); border:1px solid var(--border); border-radius:6px; padding:8px; font:inherit; font-size:12px;"></textarea>
+          <textarea id="freeText" placeholder="…or paste the timeline here (Excel range, email table, markdown, plain text — anything)" style="width:100%; min-height:90px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:8px; font:inherit; font-size:12px;"></textarea>
           <button class="primary" id="freeParseBtn" style="margin-top:8px;">✨ Read with AI</button>
           <div id="freeOut" style="margin-top:10px;"></div>
         </div>
@@ -594,18 +1000,18 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         <div id="planOverview" style="display:none; flex-direction:column; flex:1; min-height:0;">
           <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:0 0 8px; font-size:11.5px; color:var(--muted);">
             <label>Colour bars by:</label>
-            <select id="ovColorBy" style="background:#0b1220;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font:inherit;font-size:11.5px;">
+            <select id="ovColorBy" style="background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font:inherit;font-size:11.5px;">
               <option value="owner">Owner / function (from the file)</option>
               <option value="function">Function (inferred from task name)</option>
               <option value="status">Status (complete / in progress / slipped)</option>
             </select>
             <label>Rows:</label>
-            <select id="ovRowBy" style="background:#0b1220;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font:inherit;font-size:11.5px;">
+            <select id="ovRowBy" style="background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font:inherit;font-size:11.5px;">
               <option value="project">One per study</option>
               <option value="owner">One per owner / function</option>
             </select>
             <label>Detail:</label>
-            <select id="ovDetail" style="background:#0b1220;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font:inherit;font-size:11.5px;">
+            <select id="ovDetail" style="background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font:inherit;font-size:11.5px;">
               <option value="key">Key items only</option>
               <option value="all">Every task</option>
             </select>
@@ -664,6 +1070,19 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     </div>
 
   </div><!-- /content-row -->
+
+  <!-- Global ask bar: the Chat box, frozen at the BOTTOM of EVERY tab. Runs the exact
+       same pipeline as the Chat tab (aiChat → applyAIResult → log), so an update typed
+       here from the Gantt or the Log is applied identically and shows up in Chat history. -->
+  <div id="gAns" class="ask-ans" style="display:none; margin:0 12px 6px; max-height:34vh; overflow:auto; flex:0 0 auto;"></div>
+
+  <div class="ask-bar" id="globalAskBar" style="padding:8px 12px; border-top:1px solid var(--border); background:var(--panel); flex:0 0 auto;">
+    <button id="gAttachBtn" title="Attach a file — spreadsheet, timeline, or free-form text. The AI reads it and updates the tracker.">📎</button>
+    <input type="file" id="gAttachInput" accept=".xlsx,.xls,.csv,.txt,.tsv,.md,.json" multiple style="display:none" />
+    <input id="gAsk" placeholder="Ask, update, or 📎 attach a file — from any tab… e.g. 'DEMO-103 is 90%', 'what's overdue?'" />
+    <button class="primary" id="gAskBtn">Ask AI</button>
+    <button id="gAskClear" title="Hide this answer" style="display:none;">✕</button>
+  </div>
 </main>
 
 <div class="footer-note">
@@ -973,6 +1392,7 @@ function renderTable(flashId){
       <td><b>${p.id}</b></td>
       <td>${p.lead}</td>
       <td>${p.phase}</td>
+      <td style="font-size:11.5px; white-space:nowrap; color:${studyStatusColour(p.studyStatus||"")}">${p.studyStatus || "—"}</td>
       <td><span class="${statusClass(p.status)}">${p.status}</span></td>
       <td>${p.pct}%<div class="pct-bar"><div style="width:${p.pct}%"></div></div></td>
       <td>${p.next}</td>
@@ -997,7 +1417,8 @@ function dbSnapshot(){
     savedAt: new Date().toISOString(),
     projects: projects.map(p => ({ ...p })),   // timelines ride along on each project
     auditLog: auditLog.slice(-500),            // keep the log bounded
-    uploads: uploads.slice(0, 60),             // provenance + user descriptions
+    uploads: uploads.slice(0, 60),
+    notes: notes.slice(0, 200),             // provenance + user descriptions
     aiProvider: aiProvider,                    // which AI answers — the KEY is never saved
     ovHidden: ovHidden                         // lanes switched off in the Overview
   };
@@ -1060,7 +1481,8 @@ async function dbRestore(){
     if(snap.ovHidden && typeof snap.ovHidden === "object"){
       ovHidden = { project: snap.ovHidden.project || [], owner: snap.ovHidden.owner || [] };
     }
-    if(snap.aiProvider === "claude" || snap.aiProvider === "gemini"){ aiProvider = snap.aiProvider; try{ renderProvider(); }catch(e){} }
+    if(Array.isArray(snap.notes)) notes = snap.notes;
+  if(snap.aiProvider === "claude" || snap.aiProvider === "gemini"){ aiProvider = snap.aiProvider; try{ renderProvider(); }catch(e){} }
     lastSaved = snap.savedAt ? new Date(snap.savedAt) : null;
     renderTable(); renderLog(); renderTimelines(); renderDigest(); renderEdit(); fillCmpStudy(); renderUploads();
     renderSavePill();
@@ -1319,6 +1741,8 @@ function renderTabs(){
     p.classList.toggle("split", on && visible.size>1);
   });
   document.querySelectorAll("#tabBar button[data-tab]").forEach(b=> b.classList.toggle("active", b.dataset.tab===activeTab));
+  if(activeTab==="study"){ try{ renderStudy(); }catch(e){} }
+  if(activeTab==="notes"){ try{ renderNotes(true); }catch(e){} }
   if(CONVO_TABS[activeTab]){ mode=activeTab; switchMode(); const ct=document.getElementById("convoTitle"); if(ct) ct.textContent=TAB_TITLES[activeTab]||"Conversation"; }
   // (Data tab refresh is handled inside switchMode)
 }
@@ -2403,7 +2827,7 @@ function renderFreePreview(res, filename, truncated, ext){
   fillFreeStudy(res.matchedId && projById(res.matchedId) ? projById(res.matchedId).id : (res.studyGuess ? "__new__" : undefined));
   freeShow(`
     <div style="border:1px solid var(--border); border-radius:8px; overflow:hidden;">
-      <div style="padding:8px 10px; background:#0b1220; font-size:12px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+      <div style="padding:8px 10px; background:var(--input); font-size:12px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
         <b>${shown.length} tasks</b>${cap != null && shown.length !== norm.tasks.length ? `<span style="opacity:.6">of ${norm.tasks.length}</span>` : ""}
         <span style="opacity:.75">${dates[0]} → ${dates[dates.length-1]}</span>
         <span style="opacity:.75">${done} at 100%</span>
@@ -2411,20 +2835,20 @@ function renderFreePreview(res, filename, truncated, ext){
         ${res.studyGuess ? `<span style="opacity:.75">study read as <b>${escAttr(res.studyGuess)}</b>${res.matchedId?` → matched <b>${escAttr(res.matchedId)}</b>`:` <span style="color:#f59e0b">(no match in tracker)</span>`}</span>` : ""}
         <button class="primary" id="freeImportBtn" style="margin-left:auto;">Import into tracker</button>
       </div>
-      ${levels.length > 1 ? `<div style="padding:6px 10px; font-size:11.5px; background:#0b1220; border-top:1px solid var(--border); display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      ${levels.length > 1 ? `<div style="padding:6px 10px; font-size:11.5px; background:var(--input); border-top:1px solid var(--border); display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
         <span style="color:var(--muted)">Outline depth to import:</span>
-        <select id="freeLevelSel" style="background:#0b1220;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:3px 6px;font:inherit;font-size:11.5px;">
+        <select id="freeLevelSel" style="background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:3px 6px;font:inherit;font-size:11.5px;">
           ${levels.map(l => `<option value="${l}" ${cap===l?"selected":""}>level ≤ ${l} (${norm.tasks.filter(t=>t.level==null||t.level<=l).length} tasks)</option>`).join("")}
           <option value="__all__" ${cap==null?"selected":""}>all levels (${norm.tasks.length} tasks)</option>
         </select>
         <span style="color:var(--muted)">deeper rows are sub-tasks — importing every one makes the gantt unreadable</span>
       </div>` : ""}
-      ${(norm.bad.length || res.dropped || truncated) ? `<div style="padding:6px 10px; font-size:11.5px; color:#fbbf24; background:#0b1220; border-top:1px solid var(--border);">
+      ${(norm.bad.length || res.dropped || truncated) ? `<div style="padding:6px 10px; font-size:11.5px; color:#fbbf24; background:var(--input); border-top:1px solid var(--border);">
         ${truncated ? "⚠️ File was large — only the first part was read. " : ""}
         ${res.dropped ? `${res.dropped} row(s) dropped by the AI (no derivable dates). ` : ""}
         ${norm.bad.length ? `${norm.bad.length} row(s) dropped here for missing dates: ${escAttr(norm.bad.slice(0,4).join(", "))}${norm.bad.length>4?"…":""}` : ""}
       </div>` : ""}
-      ${res.notes ? `<div style="padding:6px 10px; font-size:11.5px; color:var(--muted); background:#0b1220; border-top:1px solid var(--border);">AI: ${escAttr(res.notes)}</div>` : ""}
+      ${res.notes ? `<div style="padding:6px 10px; font-size:11.5px; color:var(--muted); background:var(--input); border-top:1px solid var(--border);">AI: ${escAttr(res.notes)}</div>` : ""}
       <div style="max-height:280px; overflow:auto;">
         <table style="width:100%; border-collapse:collapse; font-size:12px;">
           <thead><tr style="position:sticky; top:0; background:var(--panel2);">
@@ -2894,12 +3318,15 @@ async function aiChat(userText){
   // plus the activity log. If the app knows it, the AI can see it.
   const ctx = projects.map(p=>({ id:p.id, sponsor:sponsorOf(p), phase:p.phase, lead:p.lead, status:p.status, pct:p.pct,
     next:p.next, due:p.due, completedDate:p.completedDate||"", blocker:p.blocker||"", aliases:p.aliases||[],
-    owner:p.owner||"", notes:p.notes||"",
+    owner:p.owner||"", notes:p.notes||"", risks:p.risks||"",
+    // the study record: clinical status/dates, design, contacts, deliverable states
+    study:(function(){ const o={}; studyFieldKeys().forEach(k=>{ if(p[k]!==undefined && p[k]!=="") o[k]=p[k]; }); return o; })(),
+
     timeline:(p.timeline||[]).map(t=>({ task:(t.name||"").trim(), start:t.start, finish:t.finish, pct:t.pct,
                                         owner:t.owner||"", level:(t.level==null?"":t.level) })) }));
   // The audit log lets it answer "what changed this week / who changed what".
   const logCtx = (auditLog||[]).slice(-120).map(e=>({ at:e.when, kind:e.what, said:e.raw, effect:e.summary }));
-  const sys='You are the AI engine of a clinical-biometrics project status tracker. Read the current tracker state and the user message, decide whether they are UPDATING the tracker or ASKING a question, and respond with ONLY JSON: {"reply":"<concise message to show in chat>","updates":[{"projectId":"<exact id>","set":{"status":"<one of: 🟢 Green | 🟡 Yellow | 🔴 Red | ⚪ On Hold>","pct":<0-100 number>,"due":"YYYY-MM-DD","lead":"<name>","next":"<next milestone>","blocker":"<text, empty string to clear>","completedDate":"YYYY-MM-DD","phase":"<phase>","sponsor":"<name>","owner":"<name>","id":"<new id — renames the project>"}}],"timelineOps":[{"projectId":"<id>","op":"add|update|delete","task":"<task name or fragment to match>","start":"YYYY-MM-DD","finish":"YYYY-MM-DD","pct":<0-100>}],"deletes":[{"projectId":"<exact id>","reason":"<short>"}],"creates":[{"id":"<new project id>","lead":"<name>","phase":"<SDTM|ADaM|TFL|SAP|Analysis|Submission|other>","status":"<one of the four emoji strings>","pct":<0-100>,"next":"<next milestone>","due":"YYYY-MM-DD","blocker":"<text>","sponsor":"<name>","owner":"<name>","timeline":[{"task":"<name>","start":"YYYY-MM-DD","finish":"YYYY-MM-DD","pct":<0-100>}]}]}. RULES: In each "set" include ONLY the fields that actually change. Status MUST be one of the four exact emoji strings. Resolve ALL relative dates ("today","tomorrow","next Friday","in 2 weeks","end of June","mid-July","push by 2 weeks","slip a week","delay 3 days") against TODAY='+todayISO()+'. Match a project by exact id or alias; if you cannot tell which project, leave updates empty and ask in reply. If % reaches 100, also set completedDate to today. UPDATE TARGET — DEFAULT TO PROJECT-LEVEL: when the user reports a status, %, due date, lead, or blocker for a project (e.g. "DEMO-103 is 90%", "DEMO-201 delivered"), put it in updates[].set for that project. Use timelineOps ONLY when the user clearly refers to a specific timeline TASK. TIMELINE EDITING (plain language): "op":"add" to add a new task (include task name, start, finish, and pct if given) — e.g. "add task TFL QC round 2 to DEMO-103, start 2026-07-01 finish 2026-07-15"; "op":"update" to change an existing task — e.g. "DEMO-103 task QC + sign-off is 90%", "push DEMO-103 Final delivery to 2026-07-20". For op:"update" you MUST copy the task name EXACTLY as it appears in that project\'s timeline in the data — never invent, shorten, or paraphrase a task name; if no timeline task clearly matches the user\'s wording, do NOT guess — instead update the project or ask which task in reply. DELETING PROJECTS: use "deletes" when the user clearly asks to remove/delete/drop/archive/get rid of one or more projects (e.g. "delete DEMO-405", "remove the projects that are done", "drop DEMO-404 and DEMO-405", "clean up anything closed"). Put ONE entry per project with its exact id and a short reason. If the request describes a GROUP rather than naming ids ("delete everything that is complete", "remove the on-hold ones"), work out which projects match from the data and list each one — never delete a project that does not match. If you are not sure which projects are meant, leave "deletes" empty and ask in reply which ones. Deleting is always the user\'s call: never volunteer a deletion they did not ask for, and never delete as a side effect of an update. For pure questions, leave updates, timelineOps and deletes empty and put the answer in reply — be specific, cite the numbers/dates/owners/% from the data; you may use simple <b> and <br> HTML. Keep reply concise. You CAN and SHOULD answer time-window and delivery questions from the timeline tasks and project fields — never refuse them. Definitions relative to TODAY: a timeline task is DELIVERED/complete when its pct=100 (its finish date = the delivery date); IN PROGRESS when 0<pct<100; DUE within a window when its finish date falls in that window; SLIPPED when finish<TODAY and pct<100. A project also counts as delivered when its pct=100 or completedDate is set. Windows are calendar-based relative to TODAY: "this week"/"last week"/"next week" = Monday–Sunday weeks; "this month"/"last month" = calendar months. Example — "what did we deliver last week": list every timeline task (grouped by project) whose finish date is within last week AND pct=100, plus any project completed in that window; if none, say so plainly. FULL ACCESS — you have complete READ and WRITE control of this workspace. You may create projects ("creates" — use it whenever the user asks to add/create/start/set up a new project or study, and give it a timeline if they describe one), rename or re-assign any project (put "id", "phase", "sponsor", "owner" in "set"), edit any project field, add/update/DELETE timeline tasks ("op":"delete" removes the task), and delete projects. Never say you are unable to change something — if the user asks for it, do it. The only limits: never delete anything the user did not ask you to delete, and if a request is ambiguous, ask in "reply" instead of guessing. You also receive the ACTIVITY LOG, so you can answer what changed, when, and what the user said to cause it. GENERAL PRINCIPLE: You hold the COMPLETE tracker for ALL projects plus each project\'s FULL timeline (status, %, due date, lead, sponsor, phase, blocker, completedDate, and every task with its dates and %). For ANY question, scan ALL projects and ALL tasks before answering, then give a concise SYNTHESIZED summary — counts, sensibly grouped lists, and the key numbers/dates/owners/blockers. The "blocker" field is that project\'s issue/risk — use it for questions about issues, risks, problems, what is blocked, or what needs attention. SOURCES: when an UPLOADED SOURCES block is present it tells you which file each project\'s data came from, when it was read, and the user\'s own description of it. Use it to answer provenance questions ("where did these dates come from?", "what have we loaded for DEMO-103?", "what is the newest file?"), and when a description carries a caveat, repeat that caveat alongside any number it affects rather than stating the number flatly. Each source\'s "read" field is the timestamp when the app ingested that file, formatted YYYY-MM-DD HH:MM. For newest/oldest/most-recent questions, compare those timestamps as dates — the NEWEST source is the one with the LARGEST "read" value (later date wins; only compare the time when the dates are equal). Sources are listed newest-first, so the first entry is normally the most recent. Examples you must handle: overall portfolio status, what is at risk/blocked, what is overdue or slipping, who owns what, workload per lead, status by sponsor or phase, what is due/upcoming, recently delivered, % progress, and overall summaries. NEVER reply that you can only track limited things — if the answer is derivable from this data, compute and answer it; only if a specific detail is genuinely absent, say what IS known. FORMAT: keep answers short and scannable — lead with the answer, no preamble. Use short bullet lines starting with "• ", group sensibly, wrap project IDs and key numbers/dates in <b>…</b>, and separate lines with <br>. Default to brevity.';
+  const sys='You are the AI engine of a clinical-biometrics project status tracker. Read the current tracker state and the user message, decide whether they are UPDATING the tracker or ASKING a question, and respond with ONLY JSON: {"reply":"<concise message to show in chat>","updates":[{"projectId":"<exact id>","set":{"status":"<one of: 🟢 Green | 🟡 Yellow | 🔴 Red | ⚪ On Hold>","pct":<0-100 number>,"due":"YYYY-MM-DD","lead":"<name>","next":"<next milestone>","blocker":"<text, empty string to clear>","completedDate":"YYYY-MM-DD","phase":"<phase>","sponsor":"<name>","owner":"<name>","id":"<new id — renames the project>","studyStatus":"<Startup|Enrolling|Enrollment complete|LPLV|DB Lock|Completed|On Hold|Terminated>","fpi":"YYYY-MM-DD","lplv":"YYYY-MM-DD","dbLock":"YYYY-MM-DD","csrDue":"YYYY-MM-DD","protocol":"<text>","indication":"<text>","studyPhase":"<I|I/II|II|II/III|III|IV>","nSubjects":<number>,"nSites":<number>,"cro":"<text>","biostat":"<name>","dmLead":"<name>","medMonitor":"<name>","notes":"<text>","risks":"<text>","sapStatus":"<Not started|In progress|In QC|Complete|N/A>","sapDate":"YYYY-MM-DD","shellsStatus":"<same set>","shellsDate":"YYYY-MM-DD","sdtmStatus":"<same set>","sdtmDate":"YYYY-MM-DD","adamStatus":"<same set>","adamDate":"YYYY-MM-DD","tflStatus":"<same set>","tflDate":"YYYY-MM-DD","defineStatus":"<same set>","defineDate":"YYYY-MM-DD","submissionStatus":"<same set>","submissionDate":"YYYY-MM-DD"}}],"timelineOps":[{"projectId":"<id>","op":"add|update|delete","task":"<task name or fragment to match>","start":"YYYY-MM-DD","finish":"YYYY-MM-DD","pct":<0-100>}],"deletes":[{"projectId":"<exact id>","reason":"<short>"}],"creates":[{"id":"<new project id>","lead":"<name>","phase":"<SDTM|ADaM|TFL|SAP|Analysis|Submission|other>","status":"<one of the four emoji strings>","pct":<0-100>,"next":"<next milestone>","due":"YYYY-MM-DD","blocker":"<text>","sponsor":"<name>","owner":"<name>","timeline":[{"task":"<name>","start":"YYYY-MM-DD","finish":"YYYY-MM-DD","pct":<0-100>}]}]}. RULES: In each "set" include ONLY the fields that actually change. Status MUST be one of the four exact emoji strings. Resolve ALL relative dates ("today","tomorrow","next Friday","in 2 weeks","end of June","mid-July","push by 2 weeks","slip a week","delay 3 days") against TODAY='+todayISO()+'. Match a project by exact id or alias; if you cannot tell which project, leave updates empty and ask in reply. If % reaches 100, also set completedDate to today. UPDATE TARGET — DEFAULT TO PROJECT-LEVEL: when the user reports a status, %, due date, lead, or blocker for a project (e.g. "DEMO-103 is 90%", "DEMO-201 delivered"), put it in updates[].set for that project. Use timelineOps ONLY when the user clearly refers to a specific timeline TASK. TIMELINE EDITING (plain language): "op":"add" to add a new task (include task name, start, finish, and pct if given) — e.g. "add task TFL QC round 2 to DEMO-103, start 2026-07-01 finish 2026-07-15"; "op":"update" to change an existing task — e.g. "DEMO-103 task QC + sign-off is 90%", "push DEMO-103 Final delivery to 2026-07-20". For op:"update" you MUST copy the task name EXACTLY as it appears in that project\'s timeline in the data — never invent, shorten, or paraphrase a task name; if no timeline task clearly matches the user\'s wording, do NOT guess — instead update the project or ask which task in reply. DELETING PROJECTS: use "deletes" when the user clearly asks to remove/delete/drop/archive/get rid of one or more projects (e.g. "delete DEMO-405", "remove the projects that are done", "drop DEMO-404 and DEMO-405", "clean up anything closed"). Put ONE entry per project with its exact id and a short reason. If the request describes a GROUP rather than naming ids ("delete everything that is complete", "remove the on-hold ones"), work out which projects match from the data and list each one — never delete a project that does not match. If you are not sure which projects are meant, leave "deletes" empty and ask in reply which ones. Deleting is always the user\'s call: never volunteer a deletion they did not ask for, and never delete as a side effect of an update. For pure questions, leave updates, timelineOps and deletes empty and put the answer in reply — be specific, cite the numbers/dates/owners/% from the data; you may use simple <b> and <br> HTML. Keep reply concise. You CAN and SHOULD answer time-window and delivery questions from the timeline tasks and project fields — never refuse them. Definitions relative to TODAY: a timeline task is DELIVERED/complete when its pct=100 (its finish date = the delivery date); IN PROGRESS when 0<pct<100; DUE within a window when its finish date falls in that window; SLIPPED when finish<TODAY and pct<100. A project also counts as delivered when its pct=100 or completedDate is set. Windows are calendar-based relative to TODAY: "this week"/"last week"/"next week" = Monday–Sunday weeks; "this month"/"last month" = calendar months. Example — "what did we deliver last week": list every timeline task (grouped by project) whose finish date is within last week AND pct=100, plus any project completed in that window; if none, say so plainly. STUDY RECORD: each project also carries a "study" object — clinical status (studyStatus) and key dates (fpi, lplv, dbLock, csrDue), design (protocol, indication, studyPhase, nSubjects, nSites, cro), contacts (biostat, dmLead, medMonitor), free text (notes, risks), and a status+date per biometrics deliverable (sapStatus/sapDate, shellsStatus/shellsDate, sdtmStatus/sdtmDate, adamStatus/adamDate, tflStatus/tflDate, defineStatus/defineDate, submissionStatus/submissionDate). Set ANY of these through updates[].set, and use them when answering — "studyStatus" is where the study is CLINICALLY (enrolling, DB lock) and is a different axis from "status", which is delivery health (🟢🟡🔴⚪). Never confuse the two. FULL ACCESS — you have complete READ and WRITE control of this workspace. You may create projects ("creates" — use it whenever the user asks to add/create/start/set up a new project or study, and give it a timeline if they describe one), rename or re-assign any project (put "id", "phase", "sponsor", "owner" in "set"), edit any project field, add/update/DELETE timeline tasks ("op":"delete" removes the task), and delete projects. Never say you are unable to change something — if the user asks for it, do it. The only limits: never delete anything the user did not ask you to delete, and if a request is ambiguous, ask in "reply" instead of guessing. You also receive the ACTIVITY LOG, so you can answer what changed, when, and what the user said to cause it. GENERAL PRINCIPLE: You hold the COMPLETE tracker for ALL projects plus each project\'s FULL timeline (status, %, due date, lead, sponsor, phase, blocker, completedDate, and every task with its dates and %). For ANY question, scan ALL projects and ALL tasks before answering, then give a concise SYNTHESIZED summary — counts, sensibly grouped lists, and the key numbers/dates/owners/blockers. The "blocker" field is that project\'s issue/risk — use it for questions about issues, risks, problems, what is blocked, or what needs attention. SOURCES: when an UPLOADED SOURCES block is present it tells you which file each project\'s data came from, when it was read, and the user\'s own description of it. Use it to answer provenance questions ("where did these dates come from?", "what have we loaded for DEMO-103?", "what is the newest file?"), and when a description carries a caveat, repeat that caveat alongside any number it affects rather than stating the number flatly. Each source\'s "read" field is the timestamp when the app ingested that file, formatted YYYY-MM-DD HH:MM. For newest/oldest/most-recent questions, compare those timestamps as dates — the NEWEST source is the one with the LARGEST "read" value (later date wins; only compare the time when the dates are equal). Sources are listed newest-first, so the first entry is normally the most recent. Examples you must handle: overall portfolio status, what is at risk/blocked, what is overdue or slipping, who owns what, workload per lead, status by sponsor or phase, what is due/upcoming, recently delivered, % progress, and overall summaries. NEVER reply that you can only track limited things — if the answer is derivable from this data, compute and answer it; only if a specific detail is genuinely absent, say what IS known. FORMAT: keep answers short and scannable — lead with the answer, no preamble. Use short bullet lines starting with "• ", group sensibly, wrap project IDs and key numbers/dates in <b>…</b>, and separate lines with <br>. Default to brevity.';
   // Provenance goes to the AI too, so it can answer "where did DEMO-103's dates come from?"
   // and weigh the user's own caveats ("dates are provisional") when it reports numbers.
   const src = uploads.map(u => ({ file:u.name, kind:u.kind, project:u.project, read:u.when, gave:u.detail, description:u.note }));
@@ -2920,6 +3347,15 @@ function applyAIResult(res){
     if(s.next && p.next!==s.next){ c.push("Next: "+p.next+" → "+s.next); p.next=s.next; }
     if(s.blocker!==undefined && (p.blocker||"")!==s.blocker){ c.push("Blocker: "+(s.blocker||"(cleared)")); p.blocker=s.blocker; }
     if(s.completedDate) p.completedDate=s.completedDate;
+    // Study-record fields — schema-driven so adding a field to STUDY_GROUPS is enough.
+    studyFieldKeys().forEach(k=>{
+      if(k==="lead") return;                       // already handled above
+      if(s[k]===undefined) return;
+      const bef = p[k]==null ? "" : String(p[k]);
+      if(bef === String(s[k])) return;
+      c.push(k+": "+(bef||"—")+" → "+(s[k]||"—")); p[k]=s[k];
+    });
+
     if(s.phase && p.phase!==s.phase){ c.push("Phase: "+p.phase+" → "+s.phase); p.phase=s.phase; }
     if(s.sponsor && (p.sponsor||"")!==s.sponsor){ c.push("Sponsor: "+(p.sponsor||"—")+" → "+s.sponsor); p.sponsor=s.sponsor; }
     if(s.owner && (p.owner||"")!==s.owner){ c.push("Owner: "+(p.owner||"—")+" → "+s.owner); p.owner=s.owner; }
@@ -2953,6 +3389,7 @@ function applyAIResult(res){
                  blocker:nP.blocker||"", completedDate:"", aliases:[],
                  timeline:(nP.timeline||[]).map(t=>({ name:t.task||t.name||"", start:t.start||"",
                                                       finish:t.finish||"", pct:typeof t.pct==="number"?t.pct:0 })) };
+    studyFieldKeys().forEach(k=>{ if(nP[k]!==undefined && nP[k]!=="") proj[k]=nP[k]; });
     if(nP.sponsor) proj.sponsor=nP.sponsor;
     if(nP.owner)   proj.owner=nP.owner;
     projects.push(proj); changed.add(id);
@@ -2977,7 +3414,7 @@ function applyAIResult(res){
 
   if(changed.size || deleted.length){
     renderTable(changed.size ? [...changed][0] : undefined);
-    renderTimelines(); renderDigest();
+    renderTimelines(); renderDigest(); try{ if(activeTab==="study") renderStudy(); }catch(e){}
     try{ renderEdit(); fillCmpStudy(); }catch(e){}
   }
   return { summaries, unmatched, deleted };
@@ -3182,14 +3619,14 @@ function renderReview(res){
   }).join("");
   wrap.innerHTML = `
     <div style="border:1px solid var(--border); border-radius:8px; overflow:hidden;">
-      <div style="padding:8px 10px; background:#0b1220; font-size:12px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+      <div style="padding:8px 10px; background:var(--input); font-size:12px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
         <b>${rows.length} projects reviewed</b>
         <span style="color:#22c55e">${rows.filter(r=>r.verdict==="keep").length} keep</span>
         <span style="color:#f59e0b">${rows.filter(r=>r.verdict==="watch").length} watch</span>
         <span style="color:#ef4444">${notNeeded.length} not needed</span>
         ${notNeeded.length ? `<button class="primary" id="reviewDelAll" style="margin-left:auto;">Delete all ${notNeeded.length} "not needed"</button>` : ""}
       </div>
-      ${res.summary ? `<div style="padding:8px 10px; font-size:12px; color:var(--text); background:#0b1220; border-top:1px solid var(--border);">${escAttr(res.summary)}</div>` : ""}
+      ${res.summary ? `<div style="padding:8px 10px; font-size:12px; color:var(--text); background:var(--input); border-top:1px solid var(--border);">${escAttr(res.summary)}</div>` : ""}
       <div style="max-height:420px; overflow:auto;">
         <table style="width:100%; border-collapse:collapse; font-size:12px;">
           <thead><tr style="position:sticky; top:0; background:var(--panel2);">
@@ -3203,7 +3640,7 @@ function renderReview(res){
           <tbody>${body}</tbody>
         </table>
       </div>
-      <div style="padding:6px 10px; font-size:11px; color:var(--muted); background:#0b1220; border-top:1px solid var(--border);">
+      <div style="padding:6px 10px; font-size:11px; color:var(--muted); background:var(--input); border-top:1px solid var(--border);">
         Rubric: record quality · staleness · progress vs. elapsed time · substance (real timeline?) · blockers · duplication. Deletions are undoable.
       </div>
     </div>`;
@@ -3289,6 +3726,247 @@ async function handleSend(){
   }
 }
 document.getElementById("sendBtn").onclick = handleSend;
+
+// ───────────────────────────────────────────────────────────────
+// STUDY RECORD — this is a project-management tool, not just a timeline.
+// Delivery health (🟢🟡🔴) and work phase (SDTM/ADaM/TFL) already existed; these are
+// the STUDY's own facts, which are a different axis and must not be overloaded onto them.
+// ───────────────────────────────────────────────────────────────
+const STUDY_STATUS = ["","Startup","Enrolling","Enrollment complete","LPLV","DB Lock","Completed","On Hold","Terminated"];
+const DELIV_STATUS = ["","Not started","In progress","In QC","Complete","N/A"];
+
+const STUDY_GROUPS = [
+  { title:"Study status & key dates", fields:[
+    { k:"studyStatus", label:"Study status", opts:STUDY_STATUS },
+    { k:"fpi",    label:"FPI",           type:"date" },
+    { k:"lplv",   label:"LPLV",          type:"date" },
+    { k:"dbLock", label:"Database lock", type:"date" },
+    { k:"csrDue", label:"CSR due",       type:"date" } ]},
+  { title:"Identity & design", fields:[
+    { k:"protocol",   label:"Protocol #" },
+    { k:"sponsor",    label:"Sponsor" },
+    { k:"indication", label:"Indication / TA" },
+    { k:"studyPhase", label:"Study phase", opts:["","I","I/II","II","II/III","III","IV"] },
+    { k:"nSubjects",  label:"# Subjects", type:"number" },
+    { k:"nSites",     label:"# Sites",    type:"number" },
+    { k:"cro",        label:"CRO / vendor" } ]},
+  { title:"Contacts", fields:[
+    { k:"lead",        label:"Programming lead" },
+    { k:"biostat",     label:"Biostatistician" },
+    { k:"dmLead",      label:"DM lead" },
+    { k:"medMonitor",  label:"Medical monitor" } ]},
+];
+
+const DELIVERABLES = [
+  { k:"sap",        label:"SAP" },
+  { k:"shells",     label:"Shells" },
+  { k:"sdtm",       label:"SDTM" },
+  { k:"adam",       label:"ADaM" },
+  { k:"tfl",        label:"TFL" },
+  { k:"define",     label:"define.xml" },
+  { k:"submission", label:"Submission" },
+];
+
+// Every study field the AI and the exporter need to know about, in one list.
+function studyFieldKeys(){
+  const ks = [];
+  STUDY_GROUPS.forEach(g => g.fields.forEach(f => ks.push(f.k)));
+  DELIVERABLES.forEach(d => { ks.push(d.k+"Status", d.k+"Date"); });
+  return ks.concat(["notes","risks"]);
+}
+
+let studySel = null;   // which study the Study tab is showing
+
+function studyStatusColour(v){
+  if(/complete/i.test(v))                return "#86efac";
+  if(/terminated|hold/i.test(v))         return "#fca5a5";
+  if(/lock|lplv/i.test(v))               return "#fbbf24";
+  if(/enroll/i.test(v))                  return "#93c5fd";
+  return "var(--muted)";
+}
+
+// Timeline facts are DERIVED, never typed twice — one source of truth.
+function studyTimelineStats(p){
+  const t = p.timeline || [];
+  const today = todayISO();
+  const done = t.filter(x => Number(x.pct) >= 100).length;
+  const slipped = t.filter(x => x.finish && x.finish < today && Number(x.pct) < 100);
+  const upcoming = t.filter(x => x.finish && x.finish >= today && Number(x.pct) < 100)
+                    .sort((a,b) => (a.finish||"").localeCompare(b.finish||""));
+  return { total:t.length, done, slipped, next:upcoming[0] || null };
+}
+
+function renderStudy(){
+  const sel = document.getElementById("studyPick");
+  const body = document.getElementById("studyBody");
+  if(!sel || !body) return;
+
+  if(!projects.length){ sel.innerHTML=""; body.innerHTML='<div class="hint">No studies yet — add one from the chat bar: <i>"create project ABC-101"</i>.</div>'; return; }
+  if(!studySel || !projById(studySel)) studySel = projects[0].id;
+  sel.innerHTML = projects.map(p => `<option value="${esc(p.id)}"${p.id===studySel?" selected":""}>${esc(p.id)}</option>`).join("");
+
+  const p = projById(studySel);
+  const st = studyTimelineStats(p);
+  const field = f => {
+    const v = p[f.k] == null ? "" : p[f.k];
+    if(f.opts) return `<select data-sk="${f.k}">${f.opts.map(o=>`<option value="${esc(o)}"${o===v?" selected":""}>${esc(o||"—")}</option>`).join("")}</select>`;
+    return `<input data-sk="${f.k}" type="${f.type||"text"}" value="${esc(String(v))}" placeholder="—" />`;
+  };
+
+  body.innerHTML = `
+    <div class="st-hero">
+      <b>${esc(p.id)}</b>
+      <span class="st-badge" style="color:${studyStatusColour(p.studyStatus||"")}">${esc(p.studyStatus || "status not set")}</span>
+      <span class="${statusClass(p.status)}">${p.status}</span>
+      <span class="hint">${esc(p.sponsor || "")}${p.indication ? " · "+esc(p.indication) : ""}${p.studyPhase ? " · Phase "+esc(p.studyPhase) : ""}</span>
+      <span style="margin-left:auto; display:flex; align-items:center; gap:8px;">
+        <span class="hint">${p.pct}% complete</span>
+        <span class="st-mini" style="width:110px;"><div style="width:${Math.max(0,Math.min(100,p.pct))}%"></div></span>
+      </span>
+    </div>
+
+    <div class="st-grid">
+      ${STUDY_GROUPS.map(g => `
+        <div class="st-card">
+          <h4>${g.title}</h4>
+          ${g.fields.map(f => `<div class="st-row"><span>${f.label}</span>${field(f)}</div>`).join("")}
+        </div>`).join("")}
+
+      <div class="st-card">
+        <h4>Biometrics deliverables</h4>
+        <table class="st-deliv">
+          ${DELIVERABLES.map(d => `
+            <tr>
+              <td>${d.label}</td>
+              <td><select data-sk="${d.k}Status">${DELIV_STATUS.map(o=>`<option value="${esc(o)}"${o===(p[d.k+"Status"]||"")?" selected":""}>${esc(o||"—")}</option>`).join("")}</select></td>
+              <td><input data-sk="${d.k}Date" type="date" value="${esc(p[d.k+"Date"]||"")}" /></td>
+            </tr>`).join("")}
+        </table>
+      </div>
+
+      <div class="st-card">
+        <h4>Timeline (from the plan)</h4>
+        <div class="st-row"><span>Tasks</span><b>${st.total}</b></div>
+        <div class="st-row"><span>Complete</span><b>${st.done}${st.total?` <span class="hint">(${Math.round(st.done/st.total*100)}%)</span>`:""}</b></div>
+        <div class="st-row"><span>Slipped</span><b style="color:${st.slipped.length?"var(--warn)":"inherit"}">${st.slipped.length}</b></div>
+        <div class="st-row"><span>Next due</span><b>${st.next ? esc(st.next.name)+" <span class='hint'>"+fmtDate(st.next.finish)+"</span>" : "—"}</b></div>
+        <div class="st-row"><span>Delivery due</span><b>${fmtDate(p.due)||"—"}</b></div>
+        ${st.slipped.length ? `<div class="hint" style="margin-top:6px; color:var(--warn);">Slipped: ${st.slipped.slice(0,3).map(x=>esc(x.name)).join(", ")}${st.slipped.length>3?" +"+(st.slipped.length-3)+" more":""}</div>` : ""}
+      </div>
+    </div>
+
+    <div class="st-grid" style="margin-top:10px;">
+      <div class="st-card st-note"><h4>Notes</h4><textarea data-sk="notes" placeholder="Anything worth remembering about this study…">${esc(p.notes||"")}</textarea></div>
+      <div class="st-card st-note"><h4>Risks / issues</h4><textarea data-sk="risks" placeholder="Open risks, dependencies, escalations…">${esc(p.risks||"")}</textarea></div>
+      <div class="st-card st-note"><h4>Current blocker</h4><textarea data-sk="blocker" placeholder="What is holding this study up right now…">${esc(p.blocker||"")}</textarea></div>
+    </div>`;
+
+  // Edits write straight through to the project record and persist.
+  body.querySelectorAll("[data-sk]").forEach(el => {
+    el.onchange = () => {
+      const k = el.dataset.sk;
+      const before = p[k] == null ? "" : String(p[k]);
+      let v = el.value;
+      if(el.type === "number") v = v === "" ? "" : Number(v);
+      if(String(before) === String(v)) return;
+      p[k] = v;
+      logEvent("STUDY", `${p.id} · ${k}`, `${before || "—"} → ${v || "—"}`);
+      dbTouch();
+      try{ renderTable(); }catch(e){}
+      if(k === "studyStatus" || k === "notes" || k === "risks" || k === "blocker") renderStudy();
+    };
+  });
+}
+
+function openStudy(id){ studySel = id; showTab("study"); renderStudy(); }
+
+// ───────────────────────────────────────────────────────────────
+// NOTES — a free-form notebook, OneNote-style. Deliberately unstructured:
+// meeting notes, thinking, scratch. The AI turns it into something structured
+// on demand rather than forcing structure at typing time.
+// ───────────────────────────────────────────────────────────────
+let notes = [];          // {id, title, html, updated}
+let noteSel = null, noteTimer = null;
+
+function noteNew(){
+  const n = { id:"n"+Date.now(), title:"Untitled page",
+              html:"", updated:new Date().toISOString().slice(0,16).replace("T"," ") };
+  notes.unshift(n); noteSel = n.id; dbTouch(); renderNotes(true);
+  const ed = document.getElementById("noteEditor"); if(ed) ed.focus();
+  return n;
+}
+function noteCur(){ return notes.find(n => n.id === noteSel) || null; }
+
+function renderNotes(refill){
+  const pick=document.getElementById("notePick"), ed=document.getElementById("noteEditor"),
+        ti=document.getElementById("noteTitle"); if(!pick||!ed) return;
+  if(!notes.length) noteNew();
+  if(!noteCur()) noteSel = notes[0].id;
+  pick.innerHTML = notes.map(n=>`<option value="${n.id}"${n.id===noteSel?" selected":""}>${esc(n.title||"Untitled")} — ${n.updated}</option>`).join("");
+  const n = noteCur();
+  ed.setAttribute("data-ph","Type anything — meeting notes, decisions, half-formed ideas. Then press ✨ Summarise with AI.");
+  if(refill){ ed.innerHTML = n.html || ""; ti.value = n.title || ""; }
+  document.getElementById("noteSaved").textContent = n.updated ? "saved "+n.updated : "";
+}
+
+function noteTouch(){
+  const n = noteCur(); if(!n) return;
+  n.html = document.getElementById("noteEditor").innerHTML;
+  n.title = document.getElementById("noteTitle").value.trim() || firstLine(n.html) || "Untitled page";
+  n.updated = new Date().toISOString().slice(0,16).replace("T"," ");
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(()=>{ dbTouch(); renderNotes(false); }, 600);   // debounce: typing shouldn't thrash the DB
+}
+function firstLine(html){
+  const d=document.createElement("div"); d.innerHTML=html||"";
+  return (d.textContent||"").trim().split("\n")[0].slice(0,60);
+}
+
+async function noteSummarise(){
+  const n = noteCur(); if(!n) return;
+  const div=document.createElement("div"); div.innerHTML=n.html||"";
+  const text=(div.textContent||"").trim();
+  const out=document.getElementById("noteOut");
+  out.style.display="block";
+  if(!text){ out.innerHTML='<span style="opacity:.7">Nothing written on this page yet.</span>'; return; }
+  out.innerHTML='<span style="opacity:.55">summarising…</span>';
+  try{
+    const res = await aiJSON(
+      "You summarise a working notebook page for a clinical-biometrics project lead. Reply ONLY with JSON: "
+      + '{"summary":"<2-4 sentence plain summary>","points":["<key point>"],"actions":["<action item, owner and date if stated>"],'
+      + '"decisions":["<decision made>"],"questions":["<open question / unknown>"]}. '
+      + "Use only what is written — never invent an owner, a date or a decision. Leave an array empty if the notes contain none. "
+      + "Keep every item to one short line.",
+      "NOTEBOOK PAGE — \"" + (n.title||"Untitled") + "\":\n\n" + text.slice(0,12000),
+      { maxTokens: 2048, effort: "low" });
+    const sec=(t,a)=> (a&&a.length) ? `<div style="margin-top:8px;"><b>${t}</b><br>`+a.map(x=>"• "+esc(String(x))).join("<br>")+"</div>" : "";
+    out.innerHTML = `<div>${esc(res.summary||"")}</div>`
+      + sec("Key points",res.points) + sec("Decisions",res.decisions)
+      + sec("Actions",res.actions)   + sec("Open questions",res.questions)
+      + `<div style="margin-top:10px;"><button id="noteToChat">Send these actions to the tracker →</button></div>`;
+    const b=document.getElementById("noteToChat");
+    if(b) b.onclick=()=>{ document.getElementById("gAsk").value =
+        "From my notes, apply these to the tracker if they match a project: " + (res.actions||[]).join("; ");
+        document.getElementById("gAsk").focus(); };
+    logEvent("NOTE", "summarise: "+(n.title||"Untitled"), (res.summary||"").slice(0,140));
+  }catch(e){ out.innerHTML='⚠️ '+(e&&e.message||e); }
+}
+
+// ── Theme ───────────────────────────────────────────────────────────────────────
+// Daylight is the default. The choice is remembered per browser; it is a display
+// preference, not workspace data, so it lives in localStorage rather than the snapshot.
+function applyTheme(t){
+  document.documentElement.setAttribute("data-theme", t === "dark" ? "dark" : "light");
+  const b = document.getElementById("themeBtn");
+  if(b){ b.textContent = t === "dark" ? "☾" : "☀︎"; b.title = t === "dark" ? "Night — click for daylight" : "Daylight — click for night"; }
+  try{ localStorage.setItem("ppTheme", t); }catch(e){}
+}
+(function initTheme(){
+  let t = "light";
+  try{ t = localStorage.getItem("ppTheme") || "light"; }catch(e){}
+  applyTheme(t);
+  document.addEventListener("DOMContentLoaded", () => applyTheme(t));
+})();
 
 // ── Global ask bar (top of every tab) ───────────────────────────────────────────
 // Deliberately delegates to handleSend() rather than reimplementing it: same AI call,
@@ -3386,6 +4064,34 @@ document.getElementById("gAttachInput").onchange = e => {
   attachFromChat(fs);
 };
 
+const _sp=document.getElementById("studyPick");
+if(_sp) _sp.onchange = e => { studySel = e.target.value; renderStudy(); };
+document.getElementById("trackerBody").addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-id]");
+  if(tr) openStudy(tr.dataset.id);
+});
+const _tb=document.getElementById("themeBtn");
+if(_tb) _tb.onclick = () => applyTheme(document.documentElement.getAttribute("data-theme")==="dark" ? "light" : "dark");
+(function wireNotes(){
+  const ed=document.getElementById("noteEditor"), ti=document.getElementById("noteTitle");
+  if(!ed) return;
+  ed.addEventListener("input", noteTouch);
+  ti.addEventListener("input", noteTouch);
+  document.getElementById("noteNew").onclick = () => noteNew();
+  document.getElementById("notePick").onchange = e => { noteSel=e.target.value; renderNotes(true); document.getElementById("noteOut").style.display="none"; };
+  document.getElementById("noteSum").onclick = noteSummarise;
+  document.getElementById("noteDel").onclick = () => {
+    const n=noteCur(); if(!n) return;
+    if(!confirm(`Delete the page "${n.title||"Untitled"}"? This cannot be undone.`)) return;
+    notes = notes.filter(x=>x.id!==n.id); noteSel = notes[0] ? notes[0].id : null;
+    if(!notes.length) noteNew(); dbTouch(); renderNotes(true);
+  };
+  document.querySelectorAll("#noteTools button[data-cmd]").forEach(b => b.onclick = () => {
+    ed.focus();
+    document.execCommand(b.dataset.cmd, false, b.dataset.val || null);
+    noteTouch();
+  });
+})();
 document.getElementById("gAskBtn").onclick = globalAsk;
 document.getElementById("gAsk").addEventListener("keydown", e => { if(e.key === "Enter") globalAsk(); });
 document.getElementById("gAskClear").onclick = () => {
