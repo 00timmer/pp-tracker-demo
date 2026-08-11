@@ -382,6 +382,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     <div class="key-row">
       <label title="Override 'today' for demo purposes" style="color:var(--muted); font-size:11.5px;">Demo today:</label>
       <input id="demoDate" type="date" style="width:140px; padding:5px 8px; background:#0b1220; color:var(--text); border:1px solid var(--border); border-radius:6px; font:inherit;" />
+      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v3.2</span>
       <span class="pill" id="modePill">Simulated AI</span>
       <span id="savePill" title="Your data is saved in this browser" style="font-size:11.5px; color:var(--muted); white-space:nowrap;">💾 —</span>
       <select id="dataMenu" title="Saved data" style="background:#0b1220;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font:inherit;font-size:12px;">
@@ -3274,7 +3275,8 @@ async function handleSend(){
     const { summaries, unmatched, deleted } = applyAIResult(res);
     let reply = res.reply || "(done)";
     if(unmatched > 0 && summaries.length === 0)
-      reply = '⚠️ <b>Nothing changed.</b> I couldn\'t match that to a project or an existing timeline task. Try the exact name — e.g. <i>"DEMO-103 is 90%"</i> or use the task name shown in the Timeline view.';
+      reply = (res.reply ? res.reply + '<br>' : '')
+        + '<span style="opacity:.7">⚠️ Nothing was changed — that didn\'t match an existing project or timeline task. To create one, say <i>"create project &lt;id&gt;"</i>.</span>';
     else if(summaries.length)
       reply = (res.reply ? res.reply + "<br>" : "") + '<span style="opacity:.7">✓ Applied: ' + summaries.join("; ") + '</span>';
     thinking.innerHTML = '<div class="label">AI</div>' + reply.replace(/\n/g,"<br>");
@@ -3405,7 +3407,8 @@ async function viewAsk(askId, ansId, presetText){
     const { summaries, unmatched, deleted } = applyAIResult(res);
     let reply = res.reply || "(done)";
     if(unmatched > 0 && summaries.length === 0)
-      reply = '⚠️ <b>Nothing changed.</b> I couldn\'t match that to a project or an existing task — try the exact name.';
+      reply = (res.reply ? res.reply + '<br>' : '')
+        + '<span style="opacity:.7">⚠️ Nothing was changed — I couldn\'t match that to an existing project or task. To make a new one, say "create project <id>".</span>';
     else if(summaries.length)
       reply = (res.reply ? res.reply + "<br>" : "") + '<span style="opacity:.7">✓ Applied: ' + summaries.join("; ") + '</span>';
     ans.innerHTML = reply.replace(/\n/g,"<br>");
