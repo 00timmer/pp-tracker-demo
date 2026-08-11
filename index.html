@@ -397,6 +397,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       </select>
       <input id="apiKey" type="password" placeholder="Gemini API key (optional — demo key built in)" />
       <button class="primary" id="connectBtn" style="padding:5px 10px; font-size:12px;">Connect</button>
+      <span id="connStatus" style="font-size:11.5px; font-weight:600; white-space:nowrap;"></span>
     </div>
   </div>
 </header>
@@ -405,12 +406,25 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   <div class="tabbar" id="tabBar">
     <button data-tab="tracker" class="active">Master Tracker</button>
     <button data-tab="chat">Chat</button>
-    <button data-tab="data">📥 Data</button>
+    <button data-tab="data">✏️ Edit</button>
     <button data-tab="plan">Plan</button>
     <button data-tab="review">🎯 Review</button>
     <button data-tab="log">Activity Log</button>
     <button id="splitBtn" title="Show this tab beside the Master Tracker">⊟ Split with Tracker</button>
   </div>
+
+  <!-- Global ask bar: the Chat box, available at the top of EVERY tab. Runs the exact
+       same pipeline as the Chat tab (aiChat → applyAIResult → log), so an update typed
+       here from the Gantt or the Log is applied identically and shows up in Chat history. -->
+  <div class="ask-bar" id="globalAskBar" style="padding:8px 12px 4px; border-bottom:1px solid var(--border);">
+    <button id="gAttachBtn" title="Attach a file — spreadsheet, timeline, or free-form text. The AI reads it and updates the tracker.">📎</button>
+    <input type="file" id="gAttachInput" accept=".xlsx,.xls,.csv,.txt,.tsv,.md,.json" multiple style="display:none" />
+    <input id="gAsk" placeholder="Ask, update, or 📎 attach a file — from any tab… e.g. 'DEMO-103 is 90%', 'what's overdue?'" />
+    <button class="primary" id="gAskBtn">Ask AI</button>
+    <button id="gAskClear" title="Hide this answer" style="display:none;">✕</button>
+  </div>
+  <div id="gAns" class="ask-ans" style="display:none; margin:8px 12px 0;"></div>
+
   <div class="content-row" id="contentRow">
 
   <!-- TAB: tracker -->
@@ -425,7 +439,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         </button>
       </span>
     </header>
-    <div class="ask-bar" style="padding:10px 12px 0;">
+    <div class="ask-bar" style="display:none; padding:10px 12px 0;">
       <input id="trAsk" placeholder="Ask AI to update or ask… e.g. 'DEMO-103 is 90%' or 'who is behind?'" />
       <button class="primary" id="trAskBtn">Ask AI</button>
     </div>
@@ -640,7 +654,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         Activity Log
         <span class="hint">Raw text · timestamp · actor</span>
       </header>
-      <div class="ask-bar" style="padding:10px 12px 0;">
+      <div class="ask-bar" style="display:none; padding:10px 12px 0;">
         <input id="logAsk" placeholder="Ask AI anything… e.g. 'what's overdue?' or 'portfolio summary'" />
         <button class="primary" id="logAskBtn">Ask AI</button>
       </div>
@@ -1292,7 +1306,7 @@ document.getElementById("modeReview").onclick   = () => { mode="review";   switc
 // ── Excel-style tabs: Tracker · Chat · Upload · Timeline · Digest · Edit · Log ──
 let activeTab="tracker", splitOn=false;
 const CONVO_TABS={chat:1,data:1,plan:1,review:1};
-const TAB_TITLES={chat:"Chat",data:"Data — import files · edit projects & timelines",plan:"Plan — gantt · digest · overview",review:"Portfolio review — rubric scoring"};
+const TAB_TITLES={chat:"Chat",data:"Edit — projects & timelines (attach files with 📎 on the chat bar)",plan:"Plan — gantt · digest · overview",review:"Portfolio review — rubric scoring"};
 function showTab(tab){ activeTab=tab; renderTabs(); }
 function renderTabs(){
   const paneOf = t => CONVO_TABS[t] ? "convo" : t;   // tracker | convo | log
@@ -1440,8 +1454,9 @@ function switchMode(){
   }
   if(mode === "plan") renderPlan();
   if(dataOn){
-    document.getElementById("dataImportBtn").classList.toggle("active", dataSub==="import");
-    document.getElementById("dataEditBtn").classList.toggle("active", dataSub==="edit");
+    const bI=document.getElementById("dataImportBtn"), bE=document.getElementById("dataEditBtn");
+    if(bI) bI.classList.toggle("active", dataSub==="import");
+    if(bE) bE.classList.toggle("active", dataSub==="edit");
     if(dataSub==="edit") renderEdit(); else { fillCmpStudy(); if(typeof fillFreeStudy==="function") fillFreeStudy();
       if(typeof refreshScanControls==="function") refreshScanControls(); if(typeof renderUploads==="function") renderUploads(); }
   }
@@ -1879,21 +1894,23 @@ dz.addEventListener("drop", async e => {
 
 // One entry point for every file the user picks OR drops, so "Choose file…" and
 // drag-and-drop behave identically and there is only one button to explain.
-function routeFiles(files){
+// Made awaitable so callers (the chat-bar 📎) can report a real success/failure
+// instead of guessing. Each branch returns its promise; nothing else changed.
+async function routeFiles(files){
   if(!files || !files.length) return;
   const isSheet = f => /\.(xlsx|xls|csv)$/i.test(f.name);
   const isText  = f => /\.(txt|tsv|md|tsv)$/i.test(f.name);
   if(files.length === 1 && isSheet(files[0])){
-    handleExcelFiles(files);                 // strict parse first; falls back to the AI reader itself
+    return await handleExcelFiles(files);    // strict parse first; falls back to the AI reader itself
   } else if(files.length === 1 && isText(files[0])){
     freeFile = files[0];                     // plain text only ever makes sense to the AI reader
-    document.getElementById("freeFileName").textContent = freeFile.name;
-    showTab("upload");
-    runFreeParse();
+    const fn = document.getElementById("freeFileName");
+    if(fn) fn.textContent = freeFile.name;
+    return await runFreeParse();
   } else if(files.every(isSheet)){
-    handleExcelFiles(files);                 // several spreadsheets — ingest each
+    return await handleExcelFiles(files);    // several spreadsheets — ingest each
   } else {
-    handleFolderFiles(files);                // a folder, or a mixed bag → treat as output scan
+    return await handleFolderFiles(files);   // a folder, or a mixed bag → treat as output scan
   }
 }
 
@@ -2872,15 +2889,22 @@ function projById(id){ if(!id) return null; const k=String(id).toLowerCase();
       || projects.find(p=>p.id.toLowerCase().includes(k)||k.includes(p.id.toLowerCase())); }
 
 async function aiChat(userText){
+  // FULL READ ACCESS: every project field and every timeline field the app stores,
+  // plus the activity log. If the app knows it, the AI can see it.
   const ctx = projects.map(p=>({ id:p.id, sponsor:sponsorOf(p), phase:p.phase, lead:p.lead, status:p.status, pct:p.pct,
     next:p.next, due:p.due, completedDate:p.completedDate||"", blocker:p.blocker||"", aliases:p.aliases||[],
-    timeline:(p.timeline||[]).map(t=>({ task:(t.name||"").trim(), start:t.start, finish:t.finish, pct:t.pct })) }));
-  const sys='You are the AI engine of a clinical-biometrics project status tracker. Read the current tracker state and the user message, decide whether they are UPDATING the tracker or ASKING a question, and respond with ONLY JSON: {"reply":"<concise message to show in chat>","updates":[{"projectId":"<exact id>","set":{"status":"<one of: 🟢 Green | 🟡 Yellow | 🔴 Red | ⚪ On Hold>","pct":<0-100 number>,"due":"YYYY-MM-DD","lead":"<name>","next":"<next milestone>","blocker":"<text, empty string to clear>","completedDate":"YYYY-MM-DD"}}],"timelineOps":[{"projectId":"<id>","op":"add|update","task":"<task name or fragment to match>","start":"YYYY-MM-DD","finish":"YYYY-MM-DD","pct":<0-100>}],"deletes":[{"projectId":"<exact id>","reason":"<short>"}]}. RULES: In each "set" include ONLY the fields that actually change. Status MUST be one of the four exact emoji strings. Resolve ALL relative dates ("today","tomorrow","next Friday","in 2 weeks","end of June","mid-July","push by 2 weeks","slip a week","delay 3 days") against TODAY='+todayISO()+'. Match a project by exact id or alias; if you cannot tell which project, leave updates empty and ask in reply. If % reaches 100, also set completedDate to today. UPDATE TARGET — DEFAULT TO PROJECT-LEVEL: when the user reports a status, %, due date, lead, or blocker for a project (e.g. "DEMO-103 is 90%", "DEMO-201 delivered"), put it in updates[].set for that project. Use timelineOps ONLY when the user clearly refers to a specific timeline TASK. TIMELINE EDITING (plain language): "op":"add" to add a new task (include task name, start, finish, and pct if given) — e.g. "add task TFL QC round 2 to DEMO-103, start 2026-07-01 finish 2026-07-15"; "op":"update" to change an existing task — e.g. "DEMO-103 task QC + sign-off is 90%", "push DEMO-103 Final delivery to 2026-07-20". For op:"update" you MUST copy the task name EXACTLY as it appears in that project\'s timeline in the data — never invent, shorten, or paraphrase a task name; if no timeline task clearly matches the user\'s wording, do NOT guess — instead update the project or ask which task in reply. DELETING PROJECTS: use "deletes" when the user clearly asks to remove/delete/drop/archive/get rid of one or more projects (e.g. "delete DEMO-405", "remove the projects that are done", "drop DEMO-404 and DEMO-405", "clean up anything closed"). Put ONE entry per project with its exact id and a short reason. If the request describes a GROUP rather than naming ids ("delete everything that is complete", "remove the on-hold ones"), work out which projects match from the data and list each one — never delete a project that does not match. If you are not sure which projects are meant, leave "deletes" empty and ask in reply which ones. Deleting is always the user\'s call: never volunteer a deletion they did not ask for, and never delete as a side effect of an update. For pure questions, leave updates, timelineOps and deletes empty and put the answer in reply — be specific, cite the numbers/dates/owners/% from the data; you may use simple <b> and <br> HTML. Keep reply concise. You CAN and SHOULD answer time-window and delivery questions from the timeline tasks and project fields — never refuse them. Definitions relative to TODAY: a timeline task is DELIVERED/complete when its pct=100 (its finish date = the delivery date); IN PROGRESS when 0<pct<100; DUE within a window when its finish date falls in that window; SLIPPED when finish<TODAY and pct<100. A project also counts as delivered when its pct=100 or completedDate is set. Windows are calendar-based relative to TODAY: "this week"/"last week"/"next week" = Monday–Sunday weeks; "this month"/"last month" = calendar months. Example — "what did we deliver last week": list every timeline task (grouped by project) whose finish date is within last week AND pct=100, plus any project completed in that window; if none, say so plainly. GENERAL PRINCIPLE: You hold the COMPLETE tracker for ALL projects plus each project\'s FULL timeline (status, %, due date, lead, sponsor, phase, blocker, completedDate, and every task with its dates and %). For ANY question, scan ALL projects and ALL tasks before answering, then give a concise SYNTHESIZED summary — counts, sensibly grouped lists, and the key numbers/dates/owners/blockers. The "blocker" field is that project\'s issue/risk — use it for questions about issues, risks, problems, what is blocked, or what needs attention. SOURCES: when an UPLOADED SOURCES block is present it tells you which file each project\'s data came from, when it was read, and the user\'s own description of it. Use it to answer provenance questions ("where did these dates come from?", "what have we loaded for DEMO-103?", "what is the newest file?"), and when a description carries a caveat, repeat that caveat alongside any number it affects rather than stating the number flatly. Each source\'s "read" field is the timestamp when the app ingested that file, formatted YYYY-MM-DD HH:MM. For newest/oldest/most-recent questions, compare those timestamps as dates — the NEWEST source is the one with the LARGEST "read" value (later date wins; only compare the time when the dates are equal). Sources are listed newest-first, so the first entry is normally the most recent. Examples you must handle: overall portfolio status, what is at risk/blocked, what is overdue or slipping, who owns what, workload per lead, status by sponsor or phase, what is due/upcoming, recently delivered, % progress, and overall summaries. NEVER reply that you can only track limited things — if the answer is derivable from this data, compute and answer it; only if a specific detail is genuinely absent, say what IS known. FORMAT: keep answers short and scannable — lead with the answer, no preamble. Use short bullet lines starting with "• ", group sensibly, wrap project IDs and key numbers/dates in <b>…</b>, and separate lines with <br>. Default to brevity.';
+    owner:p.owner||"", notes:p.notes||"",
+    timeline:(p.timeline||[]).map(t=>({ task:(t.name||"").trim(), start:t.start, finish:t.finish, pct:t.pct,
+                                        owner:t.owner||"", level:(t.level==null?"":t.level) })) }));
+  // The audit log lets it answer "what changed this week / who changed what".
+  const logCtx = (auditLog||[]).slice(-120).map(e=>({ at:e.when, kind:e.what, said:e.raw, effect:e.summary }));
+  const sys='You are the AI engine of a clinical-biometrics project status tracker. Read the current tracker state and the user message, decide whether they are UPDATING the tracker or ASKING a question, and respond with ONLY JSON: {"reply":"<concise message to show in chat>","updates":[{"projectId":"<exact id>","set":{"status":"<one of: 🟢 Green | 🟡 Yellow | 🔴 Red | ⚪ On Hold>","pct":<0-100 number>,"due":"YYYY-MM-DD","lead":"<name>","next":"<next milestone>","blocker":"<text, empty string to clear>","completedDate":"YYYY-MM-DD","phase":"<phase>","sponsor":"<name>","owner":"<name>","id":"<new id — renames the project>"}}],"timelineOps":[{"projectId":"<id>","op":"add|update|delete","task":"<task name or fragment to match>","start":"YYYY-MM-DD","finish":"YYYY-MM-DD","pct":<0-100>}],"deletes":[{"projectId":"<exact id>","reason":"<short>"}],"creates":[{"id":"<new project id>","lead":"<name>","phase":"<SDTM|ADaM|TFL|SAP|Analysis|Submission|other>","status":"<one of the four emoji strings>","pct":<0-100>,"next":"<next milestone>","due":"YYYY-MM-DD","blocker":"<text>","sponsor":"<name>","owner":"<name>","timeline":[{"task":"<name>","start":"YYYY-MM-DD","finish":"YYYY-MM-DD","pct":<0-100>}]}]}. RULES: In each "set" include ONLY the fields that actually change. Status MUST be one of the four exact emoji strings. Resolve ALL relative dates ("today","tomorrow","next Friday","in 2 weeks","end of June","mid-July","push by 2 weeks","slip a week","delay 3 days") against TODAY='+todayISO()+'. Match a project by exact id or alias; if you cannot tell which project, leave updates empty and ask in reply. If % reaches 100, also set completedDate to today. UPDATE TARGET — DEFAULT TO PROJECT-LEVEL: when the user reports a status, %, due date, lead, or blocker for a project (e.g. "DEMO-103 is 90%", "DEMO-201 delivered"), put it in updates[].set for that project. Use timelineOps ONLY when the user clearly refers to a specific timeline TASK. TIMELINE EDITING (plain language): "op":"add" to add a new task (include task name, start, finish, and pct if given) — e.g. "add task TFL QC round 2 to DEMO-103, start 2026-07-01 finish 2026-07-15"; "op":"update" to change an existing task — e.g. "DEMO-103 task QC + sign-off is 90%", "push DEMO-103 Final delivery to 2026-07-20". For op:"update" you MUST copy the task name EXACTLY as it appears in that project\'s timeline in the data — never invent, shorten, or paraphrase a task name; if no timeline task clearly matches the user\'s wording, do NOT guess — instead update the project or ask which task in reply. DELETING PROJECTS: use "deletes" when the user clearly asks to remove/delete/drop/archive/get rid of one or more projects (e.g. "delete DEMO-405", "remove the projects that are done", "drop DEMO-404 and DEMO-405", "clean up anything closed"). Put ONE entry per project with its exact id and a short reason. If the request describes a GROUP rather than naming ids ("delete everything that is complete", "remove the on-hold ones"), work out which projects match from the data and list each one — never delete a project that does not match. If you are not sure which projects are meant, leave "deletes" empty and ask in reply which ones. Deleting is always the user\'s call: never volunteer a deletion they did not ask for, and never delete as a side effect of an update. For pure questions, leave updates, timelineOps and deletes empty and put the answer in reply — be specific, cite the numbers/dates/owners/% from the data; you may use simple <b> and <br> HTML. Keep reply concise. You CAN and SHOULD answer time-window and delivery questions from the timeline tasks and project fields — never refuse them. Definitions relative to TODAY: a timeline task is DELIVERED/complete when its pct=100 (its finish date = the delivery date); IN PROGRESS when 0<pct<100; DUE within a window when its finish date falls in that window; SLIPPED when finish<TODAY and pct<100. A project also counts as delivered when its pct=100 or completedDate is set. Windows are calendar-based relative to TODAY: "this week"/"last week"/"next week" = Monday–Sunday weeks; "this month"/"last month" = calendar months. Example — "what did we deliver last week": list every timeline task (grouped by project) whose finish date is within last week AND pct=100, plus any project completed in that window; if none, say so plainly. FULL ACCESS — you have complete READ and WRITE control of this workspace. You may create projects ("creates" — use it whenever the user asks to add/create/start/set up a new project or study, and give it a timeline if they describe one), rename or re-assign any project (put "id", "phase", "sponsor", "owner" in "set"), edit any project field, add/update/DELETE timeline tasks ("op":"delete" removes the task), and delete projects. Never say you are unable to change something — if the user asks for it, do it. The only limits: never delete anything the user did not ask you to delete, and if a request is ambiguous, ask in "reply" instead of guessing. You also receive the ACTIVITY LOG, so you can answer what changed, when, and what the user said to cause it. GENERAL PRINCIPLE: You hold the COMPLETE tracker for ALL projects plus each project\'s FULL timeline (status, %, due date, lead, sponsor, phase, blocker, completedDate, and every task with its dates and %). For ANY question, scan ALL projects and ALL tasks before answering, then give a concise SYNTHESIZED summary — counts, sensibly grouped lists, and the key numbers/dates/owners/blockers. The "blocker" field is that project\'s issue/risk — use it for questions about issues, risks, problems, what is blocked, or what needs attention. SOURCES: when an UPLOADED SOURCES block is present it tells you which file each project\'s data came from, when it was read, and the user\'s own description of it. Use it to answer provenance questions ("where did these dates come from?", "what have we loaded for DEMO-103?", "what is the newest file?"), and when a description carries a caveat, repeat that caveat alongside any number it affects rather than stating the number flatly. Each source\'s "read" field is the timestamp when the app ingested that file, formatted YYYY-MM-DD HH:MM. For newest/oldest/most-recent questions, compare those timestamps as dates — the NEWEST source is the one with the LARGEST "read" value (later date wins; only compare the time when the dates are equal). Sources are listed newest-first, so the first entry is normally the most recent. Examples you must handle: overall portfolio status, what is at risk/blocked, what is overdue or slipping, who owns what, workload per lead, status by sponsor or phase, what is due/upcoming, recently delivered, % progress, and overall summaries. NEVER reply that you can only track limited things — if the answer is derivable from this data, compute and answer it; only if a specific detail is genuinely absent, say what IS known. FORMAT: keep answers short and scannable — lead with the answer, no preamble. Use short bullet lines starting with "• ", group sensibly, wrap project IDs and key numbers/dates in <b>…</b>, and separate lines with <br>. Default to brevity.';
   // Provenance goes to the AI too, so it can answer "where did DEMO-103's dates come from?"
   // and weigh the user's own caveats ("dates are provisional") when it reports numbers.
   const src = uploads.map(u => ({ file:u.name, kind:u.kind, project:u.project, read:u.when, gave:u.detail, description:u.note }));
   const prompt='CURRENT TRACKER STATE (JSON):\n'+JSON.stringify(ctx)
     + (src.length ? '\n\nUPLOADED SOURCES — where this data came from. "description" is the user\'s own note about that file; treat it as authoritative context and honour any caveat in it (e.g. "dates are provisional", "superseded by rev 4"):\n'+JSON.stringify(src) : '')
+    + (logCtx.length ? '\n\nACTIVITY LOG (most recent last) — what has already been changed in this workspace:\n'+JSON.stringify(logCtx) : '')
     + '\n\nUSER MESSAGE:\n'+userText;
   return await aiJSON(sys, prompt, { maxTokens: 8192, geminiMaxTokens: 4096, effort: "low" });
 }
@@ -2895,10 +2919,22 @@ function applyAIResult(res){
     if(s.next && p.next!==s.next){ c.push("Next: "+p.next+" → "+s.next); p.next=s.next; }
     if(s.blocker!==undefined && (p.blocker||"")!==s.blocker){ c.push("Blocker: "+(s.blocker||"(cleared)")); p.blocker=s.blocker; }
     if(s.completedDate) p.completedDate=s.completedDate;
+    if(s.phase && p.phase!==s.phase){ c.push("Phase: "+p.phase+" → "+s.phase); p.phase=s.phase; }
+    if(s.sponsor && (p.sponsor||"")!==s.sponsor){ c.push("Sponsor: "+(p.sponsor||"—")+" → "+s.sponsor); p.sponsor=s.sponsor; }
+    if(s.owner && (p.owner||"")!==s.owner){ c.push("Owner: "+(p.owner||"—")+" → "+s.owner); p.owner=s.owner; }
+    // Renaming keeps the old id as an alias so existing references still resolve.
+    if(s.id && s.id!==p.id && !projById(s.id)){ c.push("ID: "+p.id+" → "+s.id);
+      p.aliases=[...new Set([...(p.aliases||[]), p.id])]; p.id=s.id; }
     if(c.length){ changed.add(p.id); summaries.push(p.id+": "+c.join("; ")); }
   });
   (res.timelineOps||[]).forEach(op=>{ const p=projById(op.projectId); if(!p){ unmatched++; return; } p.timeline=p.timeline||[];
     if(op.op==="add"){ p.timeline.push({name:op.task,start:op.start||"",finish:op.finish||"",pct:op.pct||0}); changed.add(p.id); summaries.push(p.id+' timeline: + "'+op.task+'" ('+(op.start||"?")+' → '+(op.finish||"?")+')'); }
+    else if(op.op==="delete"){ const tgt=(op.task||"").toLowerCase().trim();
+      const i=p.timeline.findIndex(x=>x.name.toLowerCase().trim()===tgt);
+      const j=i>=0?i:p.timeline.findIndex(x=>x.name.toLowerCase().includes(tgt));
+      if(j<0){ unmatched++; return; }
+      const gone=p.timeline.splice(j,1)[0];
+      changed.add(p.id); summaries.push(p.id+' timeline: − "'+(gone.name||"").trim()+'"'); }
     else { const tgt=(op.task||"").toLowerCase().trim();
       let t=p.timeline.find(x=>x.name.toLowerCase().trim()===tgt)
          || p.timeline.find(x=>x.name.toLowerCase().includes(tgt) || (tgt && tgt.includes(x.name.toLowerCase().trim())));
@@ -2906,6 +2942,22 @@ function applyAIResult(res){
       const c=[]; if(op.start&&t.start!==op.start){c.push("start "+op.start);t.start=op.start;} if(op.finish&&t.finish!==op.finish){c.push("finish "+op.finish);t.finish=op.finish;} if(typeof op.pct==="number"&&t.pct!==op.pct){c.push(op.pct+"%");t.pct=op.pct;}
       if(c.length){changed.add(p.id); summaries.push(p.id+' timeline ~ "'+t.name.trim()+'": '+c.join(", "));} }
   });
+  // Creations — the AI can now add projects, not just edit and delete them.
+  (res.creates||[]).forEach(nP=>{
+    const id=String(nP && nP.id || "").trim();
+    if(!id) return;
+    if(projById(id)){ unmatched++; return; }          // never silently overwrite an existing project
+    const proj={ id, lead:nP.lead||"", phase:nP.phase||"", status:nP.status||"🟢 Green",
+                 pct:typeof nP.pct==="number"?nP.pct:0, next:nP.next||"", due:nP.due||"",
+                 blocker:nP.blocker||"", completedDate:"", aliases:[],
+                 timeline:(nP.timeline||[]).map(t=>({ name:t.task||t.name||"", start:t.start||"",
+                                                      finish:t.finish||"", pct:typeof t.pct==="number"?t.pct:0 })) };
+    if(nP.sponsor) proj.sponsor=nP.sponsor;
+    if(nP.owner)   proj.owner=nP.owner;
+    projects.push(proj); changed.add(id);
+    summaries.push("created "+id+(proj.timeline.length?" (+"+proj.timeline.length+" timeline tasks)":""));
+  });
+
   // Deletions — applied immediately (the tool auto-applies by design) but always undoable,
   // so a wrong AI match costs one click rather than a rebuilt project.
   const deleted = [];
@@ -2980,6 +3032,11 @@ function renderProvider(){
 document.getElementById("providerSel").onchange = e => {
   aiProvider = e.target.value;
   renderProvider();
+  // A tick earned by Gemini must not be shown while Claude is selected, and vice versa.
+  const haveKey = aiProvider === "claude" ? !!claudeKey : true;
+  setConnStatus(haveKey ? "wait" : "bad",
+    haveKey ? "● not tested" : "✗ no key",
+    haveKey ? "Press Connect to send a live test request." : "Paste an Anthropic key, then press Connect.");
   dbTouch();   // remember the choice (the key itself is never saved)
   if(aiProvider === "claude" && !claudeKey){
     addMsg("system", "Switched to <b>Claude</b>. Paste your Anthropic API key in the header and press <b>Connect</b> — it's kept in memory for this session only, never saved to the file. Get one at <b>console.anthropic.com → Billing → API Keys</b>.");
@@ -2988,22 +3045,77 @@ document.getElementById("providerSel").onchange = e => {
   }
 };
 
-document.getElementById("connectBtn").onclick = () => {
-  const el = document.getElementById("apiKey");
-  const k = el.value.trim();
+// Connect no longer just *stores* the key — it TESTS it, so you never have to guess
+// whether it worked. Status shows inline next to the button and never disappears
+// silently: ⏳ checking → ✓ connected (with the model) or ✗ the actual reason it failed.
+function setConnStatus(kind, text, detail){
+  const el = document.getElementById("connStatus");
+  if(!el) return;
+  const c = kind === "ok" ? "var(--ok,#34d399)" : kind === "bad" ? "var(--bad,#f87171)" : "var(--muted)";
+  el.style.color = c;
+  el.textContent = text;
+  el.title = detail || "";
+}
+
+async function testConnection(){
+  // One deliberately tiny call through the same path the app uses for real work,
+  // so a green tick means "the app can actually reach the model", not "the string looked OK".
   if(aiProvider === "claude"){
-    if(!k){ alert("Paste your Anthropic API key (starts with sk-ant-). Get one at console.anthropic.com → Billing → API Keys."); return; }
-    if(!/^sk-ant-/.test(k) && !confirm("That doesn't look like an Anthropic key (they start with sk-ant-). Use it anyway?")) return;
-    claudeKey = k;
-    el.value = "";                 // don't leave it sitting in the DOM
-    addMsg("system", "Anthropic key set for this session. Claude is now answering.");
-  } else {
-    if(!k){ alert("Paste a Google Gemini API key, or leave blank to use the built-in demo key."); return; }
-    geminiKey = k;
-    el.value = "";
-    addMsg("system", "Using your own Gemini API key for this session.");
+    const j = await claudeRaw({ model: CLAUDE_MODEL, max_tokens: 4,
+      messages: [{ role:"user", content:"Reply with: OK" }] });
+    return "Claude " + (j.model || CLAUDE_MODEL);
   }
-  renderProvider();
+  await geminiRaw({ contents:[{parts:[{text:"Reply with: OK"}]}],
+    generationConfig:{maxOutputTokens:4, temperature:0, thinkingConfig:{thinkingBudget:0}} });
+  return "Gemini";
+}
+
+document.getElementById("connectBtn").onclick = async () => {
+  const el  = document.getElementById("apiKey");
+  const btn = document.getElementById("connectBtn");
+  const k   = el.value.trim();
+
+  // Remember what was working, so a bad new key doesn't silently break a good session.
+  const prevClaude = claudeKey, prevGemini = geminiKey;
+
+  if(aiProvider === "claude"){
+    if(!k && !claudeKey){
+      setConnStatus("bad", "✗ no key", "Paste your Anthropic key (sk-ant-…) from console.anthropic.com → API Keys.");
+      alert("Paste your Anthropic API key (starts with sk-ant-). Get one at console.anthropic.com → Billing → API Keys.");
+      return;
+    }
+    if(k && !/^sk-ant-/.test(k) && !confirm("That doesn't look like an Anthropic key (they start with sk-ant-). Use it anyway?")) return;
+    if(k) claudeKey = k;
+  } else {
+    if(k) geminiKey = k;
+  }
+
+  el.value = "";                       // never leave the key sitting in the DOM
+  btn.disabled = true;
+  setConnStatus("wait", "⏳ checking…", "Sending a 4-token test request…");
+
+  try{
+    const who = await testConnection();
+    setConnStatus("ok", "✓ connected", who + " answered a live test request.");
+    addMsg("system", `✅ <b>Connected — ${who}.</b> The key works; it answered a live test request. `
+      + (aiProvider === "claude" ? "Claude is now answering." : "Gemini is now answering."));
+  }catch(e){
+    claudeKey = prevClaude; geminiKey = prevGemini;   // roll back — keep the session usable
+    const m = String(e && e.message || e);
+    const why = /401|invalid.?x?-?api|authentication/i.test(m) ? "✗ key rejected"
+              : /403|permission/i.test(m)                     ? "✗ not permitted"
+              : /429|rate/i.test(m)                           ? "✗ rate limited"
+              : /credit|billing|quota/i.test(m)               ? "✗ no credit"
+              : /fetch|network|Failed to fetch/i.test(m)      ? "✗ no network"
+              :                                                 "✗ failed";
+    setConnStatus("bad", why, m.slice(0,300));
+    addMsg("system", `⚠️ <b>Not connected — ${why.replace("✗ ","")}.</b> ${m.slice(0,300)}`
+      + (/401|invalid/i.test(m) ? "<br>Check the key at console.anthropic.com → API Keys." : "")
+      + (/credit|billing|quota/i.test(m) ? "<br>Add credit at console.anthropic.com → Billing." : ""));
+  }finally{
+    btn.disabled = false;
+    renderProvider();
+  }
 };
 
 renderProvider();
@@ -3175,6 +3287,110 @@ async function handleSend(){
   }
 }
 document.getElementById("sendBtn").onclick = handleSend;
+
+// ── Global ask bar (top of every tab) ───────────────────────────────────────────
+// Deliberately delegates to handleSend() rather than reimplementing it: same AI call,
+// same apply-to-tracker logic, same undo, same Activity Log entry. The only extra job
+// is echoing the answer here, because the Chat pane may not be the visible tab.
+async function globalAsk(){
+  const box = document.getElementById("gAsk");
+  const ans = document.getElementById("gAns");
+  const clr = document.getElementById("gAskClear");
+  const btn = document.getElementById("gAskBtn");
+  const text = box.value.trim();
+  if(!text) return;
+
+  box.value = "";
+  btn.disabled = true;
+  ans.style.display = "block";
+  ans.innerHTML = '<span style="opacity:.55">thinking…</span>';
+  clr.style.display = "";
+
+  // Route through the Chat tab's own input + handler — one code path, no drift.
+  document.getElementById("userInput").value = text;
+  try{
+    await handleSend();
+    const bubbles = document.querySelectorAll("#chat .msg.bot, #chat .bot");
+    const last = bubbles[bubbles.length - 1];
+    ans.innerHTML = last
+      ? last.innerHTML.replace(/^<div class="label">AI<\/div>/, "")
+      : "(done)";
+  }catch(e){
+    ans.innerHTML = '⚠️ ' + (e && e.message || e);
+  }finally{
+    btn.disabled = false;
+    // Anything the AI changed must be reflected on whatever tab you're looking at.
+    try{ renderTable(); renderTimelines(); renderLog(); renderUploads(); }catch(e){}
+    try{ renderTabs(); }catch(e){}
+  }
+}
+// ── 📎 Attach from the chat bar, on any tab ─────────────────────────────────────
+// Reuses routeFiles() — the same ingest the old Data tab used. The status line is
+// measured, not assumed: we count projects / timeline tasks / uploads before and
+// after, so "success" means the workspace actually gained something.
+function ingestCounts(){
+  let tasks = 0;
+  try{ (projects||[]).forEach(p => { tasks += (p.timeline||[]).length; }); }catch(e){}
+  return { projects:(projects||[]).length, tasks, uploads:(uploads||[]).length };
+}
+
+async function attachFromChat(files){
+  if(!files || !files.length) return;
+  const ans = document.getElementById("gAns");
+  const clr = document.getElementById("gAskClear");
+  const btn = document.getElementById("gAttachBtn");
+  const names = files.map(f => f.name).join(", ");
+
+  ans.style.display = "block"; clr.style.display = "";
+  ans.innerHTML = `<span style="opacity:.65">⏳ Reading <b>${names}</b>…</span>`;
+  btn.disabled = true;
+
+  const before = ingestCounts();
+  try{
+    await routeFiles(files);
+    const after = ingestCounts();
+    const d = { projects: after.projects-before.projects, tasks: after.tasks-before.tasks,
+                uploads: after.uploads-before.uploads };
+    const bits = [];
+    if(d.projects) bits.push(`<b>${d.projects>0?"+":""}${d.projects}</b> project${Math.abs(d.projects)===1?"":"s"}`);
+    if(d.tasks)    bits.push(`<b>${d.tasks>0?"+":""}${d.tasks}</b> timeline task${Math.abs(d.tasks)===1?"":"s"}`);
+
+    if(bits.length){
+      ans.innerHTML = `<span style="color:var(--ok,#34d399); font-weight:600;">✓ Uploaded — ${names}</span>`
+        + `<div style="margin-top:4px; opacity:.8;">Added ${bits.join(" · ")}. Now ${after.projects} projects, ${after.tasks} timeline tasks.</div>`;
+      logEvent("UPLOAD", names, bits.join(" | ").replace(/<[^>]+>/g,""));
+    } else if(d.uploads){
+      // Registered as a source (e.g. an output-folder scan) without changing the tracker.
+      ans.innerHTML = `<span style="color:var(--ok,#34d399); font-weight:600;">✓ Uploaded — ${names}</span>`
+        + `<div style="margin-top:4px; opacity:.8;">Recorded as a source the AI can use. Tracker rows unchanged.</div>`;
+      logEvent("UPLOAD", names, "recorded as source");
+    } else {
+      ans.innerHTML = `<span style="color:var(--warn,#fbbf24); font-weight:600;">⚠️ Read ${names}, but nothing was imported.</span>`
+        + `<div style="margin-top:4px; opacity:.8;">No rows matched a project or timeline. Check it has task/date columns — or tell me in the box above what the columns mean.</div>`;
+    }
+  }catch(e){
+    ans.innerHTML = `<span style="color:var(--bad,#f87171); font-weight:600;">✗ Upload failed — ${names}</span>`
+      + `<div style="margin-top:4px; opacity:.85;">${String(e && e.message || e).slice(0,300)}</div>`;
+  }finally{
+    btn.disabled = false;
+    try{ renderTable(); renderTimelines(); renderUploads(); renderLog(); }catch(e){}
+    try{ dbTouch(); }catch(e){}
+  }
+}
+
+document.getElementById("gAttachBtn").onclick = () => document.getElementById("gAttachInput").click();
+document.getElementById("gAttachInput").onchange = e => {
+  const fs = [...e.target.files]; e.target.value = "";   // allow re-picking the same file
+  attachFromChat(fs);
+};
+
+document.getElementById("gAskBtn").onclick = globalAsk;
+document.getElementById("gAsk").addEventListener("keydown", e => { if(e.key === "Enter") globalAsk(); });
+document.getElementById("gAskClear").onclick = () => {
+  document.getElementById("gAns").style.display = "none";
+  document.getElementById("gAskClear").style.display = "none";
+};
+
 
 // Ask-AI / AI-Summary inside Timeline & Digest views
 async function viewAsk(askId, ansId, presetText){
@@ -3572,7 +3788,7 @@ function renderLaneChips(ids, mode){
   if(N) N.onclick = () => { ovHidden[mode] = ids.slice();   dbTouch(); renderOverview(); };
 }
 
-let dataSub = "import";   // "import" | "edit" — Data tab sub-lens
+let dataSub = "edit";   // Import lens retired — the chat bar's 📎 ingests files from every tab.
 let planSub = "gantt";   // "gantt" | "digest" | "overview"
 
 function renderPlan(){
@@ -3596,8 +3812,9 @@ document.getElementById("planGanttBtn").onclick    = () => setPlanSub("gantt");
 document.getElementById("planDigestBtn").onclick   = () => setPlanSub("digest");
 document.getElementById("planOverviewBtn").onclick = () => setPlanSub("overview");
 function setDataSub(s){ dataSub=s; switchMode(); }
-document.getElementById("dataImportBtn").onclick = () => setDataSub("import");
-document.getElementById("dataEditBtn").onclick   = () => setDataSub("edit");
+const _dImp=document.getElementById("dataImportBtn"), _dEdt=document.getElementById("dataEditBtn");
+if(_dImp) _dImp.onclick = () => setDataSub("import");
+if(_dEdt) _dEdt.onclick = () => setDataSub("edit");
 document.getElementById("ovColorBy").onchange = renderOverview;
 document.getElementById("ovRowBy").onchange   = renderOverview;
 document.getElementById("ovLabels").onchange  = renderOverview;
