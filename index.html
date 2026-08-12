@@ -783,7 +783,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       <label title="Override the current date for planning and what-if views" style="color:var(--muted); font-size:11.5px;">Today:</label>
       <input id="demoDate" type="date" style="width:140px; padding:5px 8px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:6px; font:inherit;" />
       <button id="themeBtn" title="Switch between daylight and night" style="background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 9px; font:inherit; font-size:12px; cursor:pointer;">☀︎</button>
-      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v4.8</span>
+      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v4.9</span>
       <span class="pill" id="modePill">Simulated AI</span>
       <span id="savePill" title="Your data is saved in this browser" style="font-size:11.5px; color:var(--muted); white-space:nowrap;">💾 —</span>
       <input type="file" id="snapInput" accept=".json" style="display:none" />
@@ -2355,6 +2355,12 @@ function runDataAction(action){
     case "import_file":
       document.getElementById("gAttachInput").click();
       return "📎 Pick a spreadsheet, timeline or text file — I'll read it and update the tracker.";
+    case "use_nvidia": {
+      if(!nvidiaProxy) return "No NVIDIA proxy is configured — paste your https://….workers.dev URL in the header.";
+      aiProvider = "nvidia"; renderProvider(); dbTouch();
+      setConnStatus("wait", "● not tested", "Press Connect to send a live test request.");
+      return `Switched back to <b>NVIDIA</b> (${NVIDIA_MODEL}).`;
+    }
     case "clear_log": {
       const n = auditLog.length;
       if(!n) return "The activity log is already empty.";
@@ -2384,6 +2390,8 @@ function detectDataIntent(t){
   // what Alex is working on and why it slipped" is a question that happens to contain
   // "export" — a word cap separates the two far better than a character count.
   if(s.split(/\s+/).length > 8) return null;
+  if(/\b(use|switch|change|go|back|revert)\b/.test(s) && /\b(nvidia|glm|nemotron|default)\b/.test(s))
+    return "use_nvidia";
   if(/\b(clear|empty|wipe|delete|erase)\b/.test(s) && /\b(log|activity|history)\b/.test(s))
     return "clear_log";                                // before reset: "clear the log data" is not a reset
   if(/\b(reset|start over|wipe|clear)\b/.test(s) && /\b(sample|demo|original|data|everything|tracker)\b/.test(s))
@@ -3342,6 +3350,12 @@ const CLAUDE_MODEL = "claude-opus-5";
 // Verified live against NVIDIA's catalogue — /v1/models lists these exact ids.
 const NVIDIA_MODELS = ["z-ai/glm-5.2", "minimaxai/minimax-m3", "meta/llama-3.1-70b-instruct"];
 let NVIDIA_MODEL = NVIDIA_MODELS[0];
+// GLM 5.2 accepts an image and answers "Unknown" — it takes the attachment
+// without being able to read it, which is why the AI concluded it could not see
+// pictures at all. Attachments are routed to a real vision model instead.
+// Measured: nemotron-nano-12b-v2-vl 2s, llama-3.2-11b-vision 6s,
+// llama-3.2-90b-vision timed out, phi-3-vision 404.
+const NVIDIA_VISION_MODEL = "nvidia/nemotron-nano-12b-v2-vl";
 // Default proxy. Deliberately public: this is a static page, so anything it needs
 // at runtime is readable by anyone. The Worker holds the API key server-side and is
 // rate-limited, so the worst case is someone consuming quota, never a leaked key.
@@ -3437,7 +3451,9 @@ async function aiJSON(sys, prompt, opts){
       ? o.images.map(im => ({ type:"image_url", image_url:{ url:"data:"+im.mime+";base64,"+im.b64 } }))
           .concat([{ type:"text", text: prompt }])
       : prompt;
-    const j = await nvidiaRaw({ model: NVIDIA_MODEL, max_tokens: maxTokens, temperature: 0,
+    const hasImages = !!(o.images && o.images.length);
+    const j = await nvidiaRaw({ model: hasImages ? NVIDIA_VISION_MODEL : NVIDIA_MODEL,
+      max_tokens: maxTokens, temperature: 0,
       messages: [{ role:"system", content: sys }, { role:"user", content }] });
     return parseLooseJSON(nvidiaText(j));
   }
@@ -3673,6 +3689,19 @@ function renderProvider(){
   const pill = document.getElementById("modePill");
   pill.textContent = providerLabel();
   pill.classList.add("on");
+  // Clicking the pill returns to NVIDIA. Without this the only way back after
+  // pasting a Claude or Gemini key is re-pasting the Worker URL from memory.
+  if(nvidiaProxy && aiProvider !== "nvidia"){
+    pill.style.cursor = "pointer";
+    pill.title = "Click to switch back to NVIDIA";
+    pill.onclick = () => {
+      aiProvider = "nvidia"; renderProvider(); dbTouch();
+      setConnStatus("wait", "● not tested", "Press Connect to send a live test request.");
+      addMsg("system", `Switched back to <b>NVIDIA</b> (${NVIDIA_MODEL}).`);
+    };
+  } else {
+    pill.style.cursor = ""; pill.onclick = null;
+  }
   const key = document.getElementById("apiKey");
   if(aiProvider === "claude"){
     key.placeholder = claudeKey ? "Anthropic key set for this session" : "Paste an API key, or your NVIDIA Worker URL";
