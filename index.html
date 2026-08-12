@@ -783,7 +783,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       <label title="Override the current date for planning and what-if views" style="color:var(--muted); font-size:11.5px;">Today:</label>
       <input id="demoDate" type="date" style="width:140px; padding:5px 8px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:6px; font:inherit;" />
       <button id="themeBtn" title="Switch between daylight and night" style="background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 9px; font:inherit; font-size:12px; cursor:pointer;">☀︎</button>
-      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v3.7</span>
+      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v3.9</span>
       <span class="pill" id="modePill">Simulated AI</span>
       <span id="savePill" title="Your data is saved in this browser" style="font-size:11.5px; color:var(--muted); white-space:nowrap;">💾 —</span>
       <select id="dataMenu" title="Saved data" style="background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font:inherit;font-size:12px;">
@@ -793,7 +793,8 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         <option value="reset">↺ Reset to sample data</option>
       </select>
       <input type="file" id="snapInput" accept=".json" style="display:none" />
-      <input id="apiKey" type="password" placeholder="Paste an API key — Gemini, Claude or NVIDIA" title="The prefix tells the app who the provider is: AIza… Gemini · sk-ant-… Claude · nvapi-… NVIDIA" />
+      <input id="apiKey" type="password" placeholder="Paste an API key, or your NVIDIA Worker URL" title="The prefix tells the app who the provider is: AIza… Gemini · sk-ant-… Claude · nvapi-… NVIDIA" />
+      <select id="nvModel" title="Which NVIDIA model answers" style="display:none; background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:5px 8px;font:inherit;font-size:12px;"></select>
       <button class="primary" id="connectBtn" style="padding:5px 10px; font-size:12px;">Connect</button>
       <span id="connStatus" style="font-size:11.5px; font-weight:600; white-space:nowrap;"></span>
     </div>
@@ -1447,6 +1448,8 @@ function dbSnapshot(){
     uploads: uploads.slice(0, 60),
     notes: notes.slice(0, 200),             // provenance + user descriptions
     aiProvider: aiProvider,                    // which AI answers — the KEY is never saved
+    nvidiaProxy: nvidiaProxy,                  // an endpoint, not a credential
+    nvidiaModel: NVIDIA_MODEL,
     ovHidden: ovHidden                         // lanes switched off in the Overview
   };
 }
@@ -1509,6 +1512,8 @@ async function dbRestore(){
       ovHidden = { project: snap.ovHidden.project || [], owner: snap.ovHidden.owner || [] };
     }
     if(Array.isArray(snap.notes)) notes = snap.notes;
+  if(typeof snap.nvidiaProxy === "string") nvidiaProxy = snap.nvidiaProxy;
+  if(snap.nvidiaModel && NVIDIA_MODELS.indexOf(snap.nvidiaModel) >= 0) NVIDIA_MODEL = snap.nvidiaModel;
   if(snap.aiProvider === "claude" || snap.aiProvider === "gemini" || snap.aiProvider === "nvidia"){ aiProvider = snap.aiProvider; try{ renderProvider(); }catch(e){} }
     lastSaved = snap.savedAt ? new Date(snap.savedAt) : null;
     renderTable(); renderLog(); renderTimelines(); renderDigest(); renderEdit(); fillCmpStudy(); renderUploads();
@@ -3261,23 +3266,27 @@ const CLAUDE_MODEL = "claude-opus-5";
 // Heads-up: NVIDIA's API returns no Access-Control-Allow-Origin header, so a
 // browser blocks the call outright. The path below is complete and correct —
 // it works from a wrapper or behind a proxy, but not from a plain web page.
-const NVIDIA_MODEL = "meta/llama-3.1-70b-instruct";
-let nvidiaKey = "";
+// Verified live against NVIDIA's catalogue — /v1/models lists these exact ids.
+const NVIDIA_MODELS = ["z-ai/glm-5.2", "minimaxai/minimax-m3", "meta/llama-3.1-70b-instruct"];
+let NVIDIA_MODEL = NVIDIA_MODELS[0];
+let nvidiaProxy = "";   // https://….workers.dev — the Worker holds the key, not this page
 async function nvidiaRaw(body){
-  if(!nvidiaKey) throw new Error("No NVIDIA API key. Paste one in the header and press Connect.");
+  if(!nvidiaProxy) throw new Error("NVIDIA needs a proxy. Their API sends no CORS header, so a page "
+    + "cannot call it directly. Deploy worker.js from this repo to Cloudflare, then paste the "
+    + "https://….workers.dev URL in the header and press Connect.");
   let r;
   try{
-    r = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+    // No Authorization header on purpose — the Worker adds the key server-side.
+    r = await fetch(nvidiaProxy, {
       method:"POST",
-      headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+nvidiaKey },
+      headers:{ "Content-Type":"application/json" },
       body: JSON.stringify(body)
     });
   }catch(e){
-    throw new Error("NVIDIA refused the browser request. Their API sends no CORS header, "
-      + "so a web page cannot call it directly — it needs a small server-side proxy. "
-      + "Gemini and Claude both work from here.");
+    throw new Error("Could not reach the NVIDIA proxy at " + nvidiaProxy + " — check the Worker is "
+      + "deployed and that this page's origin is in its ALLOWED_ORIGINS list.");
   }
-  if(!r.ok){ const t = await r.text().catch(()=>""); throw new Error("NVIDIA "+r.status+" — "+t.slice(0,200)); }
+  if(!r.ok){ const t = await r.text().catch(()=>""); throw new Error("NVIDIA proxy "+r.status+" — "+t.slice(0,200)); }
   return r.json();
 }
 function nvidiaText(j){ const c=(j&&j.choices||[])[0]; return (c && c.message && c.message.content) || ""; }
@@ -3373,9 +3382,10 @@ async function aiJSON(sys, prompt, opts){
 function providerLabel(){ return aiProvider === "claude" ? "Claude" : aiProvider === "nvidia" ? "NVIDIA" : "Gemini"; }
 // One box, no dropdown: the key itself says who the provider is.
 function detectProvider(k){
-  if(/^nvapi-/i.test(k))  return "nvidia";
-  if(/^sk-ant-/i.test(k)) return "claude";
-  if(/^AIza/.test(k))     return "gemini";
+  if(/^https:\/\/\S+$/i.test(k)) return "nvidia";       // a Cloudflare Worker proxy URL
+  if(/^nvapi-/i.test(k))          return "nvidia-key";   // belongs in the Worker, never here
+  if(/^sk-ant-/i.test(k))         return "claude";
+  if(/^AIza/.test(k))             return "gemini";
   return null;
 }
 function parseLooseJSON(t){ if(!t) throw new Error("Empty AI response.");
@@ -3533,17 +3543,31 @@ function renderProvider(){
   pill.classList.add("on");
   const key = document.getElementById("apiKey");
   if(aiProvider === "claude"){
-    key.placeholder = claudeKey ? "Anthropic key set for this session" : "Paste an API key — Gemini, Claude or NVIDIA";
+    key.placeholder = claudeKey ? "Anthropic key set for this session" : "Paste an API key, or your NVIDIA Worker URL";
     key.style.borderColor = claudeKey ? "" : "var(--warn)";
     pill.title = "Claude " + CLAUDE_MODEL + " · your key, this session only";
   } else if(aiProvider === "nvidia"){
-    key.placeholder = nvidiaKey ? "NVIDIA key set for this session" : "Paste an API key — Gemini, Claude or NVIDIA";
-    key.style.borderColor = nvidiaKey ? "" : "var(--warn)";
-    pill.title = "NVIDIA " + NVIDIA_MODEL + " · your key, this session only";
+    key.placeholder = nvidiaProxy ? "NVIDIA proxy set" : "Paste an API key, or your NVIDIA Worker URL";
+    key.style.borderColor = nvidiaProxy ? "" : "var(--warn)";
+    pill.title = "NVIDIA " + NVIDIA_MODEL + " · via your Worker";
   } else {
-    key.placeholder = "Paste an API key — Gemini, Claude or NVIDIA";
+    key.placeholder = "Paste an API key, or your NVIDIA Worker URL";
     key.style.borderColor = "";
     pill.title = "Gemini · your key, this session only";
+  }
+  const nv = document.getElementById("nvModel");
+  if(nv){
+    nv.style.display = aiProvider === "nvidia" ? "" : "none";
+    if(!nv.options.length){
+      nv.innerHTML = NVIDIA_MODELS.map(m => `<option value="${m}">${m}</option>`).join("");
+      nv.onchange = () => {
+        NVIDIA_MODEL = nv.value;
+        dbTouch();
+        addMsg("system", `NVIDIA model set to <b>${NVIDIA_MODEL}</b>.`);
+        renderProvider();
+      };
+    }
+    if(nv.value !== NVIDIA_MODEL) nv.value = NVIDIA_MODEL;
   }
 }
 
@@ -3584,25 +3608,35 @@ document.getElementById("connectBtn").onclick = async () => {
   const k   = el.value.trim();
 
   // Remember what was working, so a bad new key doesn't silently break a good session.
-  const prevClaude = claudeKey, prevGemini = geminiKey, prevNvidia = nvidiaKey, prevProvider = aiProvider;
+  const prevClaude = claudeKey, prevGemini = geminiKey, prevNvidia = nvidiaProxy, prevProvider = aiProvider;
 
   if(k){
     // No dropdown: the prefix decides who answers.
     const who = detectProvider(k);
     if(!who){
       setConnStatus("bad", "✗ key not recognised",
-        "Recognised prefixes: AIza… (Gemini), sk-ant-… (Claude), nvapi-… (NVIDIA).");
+        "Recognised: AIza… (Gemini), sk-ant-… (Claude), or an https://….workers.dev NVIDIA proxy URL.");
       addMsg("system", "⚠️ <b>That key wasn't recognised.</b> The prefix tells the app which provider to use — "
         + "<b>AIza…</b> Google Gemini · <b>sk-ant-…</b> Anthropic Claude · <b>nvapi-…</b> NVIDIA.");
       return;
     }
+    if(who === "nvidia-key"){
+      // The whole point of the Worker is that the key never reaches the browser.
+      el.value = "";
+      setConnStatus("bad", "✗ key goes in the Worker",
+        "An nvapi- key belongs in the Cloudflare Worker secret, not in this page.");
+      addMsg("system", "⚠️ <b>Don't paste an NVIDIA key here.</b> NVIDIA blocks direct browser calls, so the key "
+        + "lives in the Cloudflare Worker (<code>wrangler secret put NVIDIA_KEY</code>). Paste the Worker's "
+        + "<b>https://….workers.dev</b> URL in this box instead and the app will route NVIDIA through it.");
+      return;
+    }
     aiProvider = who;
     if(who === "claude")      claudeKey = k;
-    else if(who === "nvidia") nvidiaKey = k;
+    else if(who === "nvidia") nvidiaProxy = k.replace(/\/+$/,"");
     else                      geminiKey = k;
     dbTouch();                       // remember the provider (never the key)
   } else {
-    const missing = (aiProvider === "claude" && !claudeKey) || (aiProvider === "nvidia" && !nvidiaKey);
+    const missing = (aiProvider === "claude" && !claudeKey) || (aiProvider === "nvidia" && !nvidiaProxy);
     if(missing){
       setConnStatus("bad", "✗ no key", "Paste a key first — AIza… (Gemini), sk-ant-… (Claude) or nvapi-… (NVIDIA).");
       return;
@@ -3619,7 +3653,7 @@ document.getElementById("connectBtn").onclick = async () => {
     addMsg("system", `✅ <b>Connected — ${who}.</b> The key works; it answered a live test request. `
       + providerLabel() + " is now answering.");
   }catch(e){
-    claudeKey = prevClaude; geminiKey = prevGemini; nvidiaKey = prevNvidia; aiProvider = prevProvider;   // roll back — keep the session usable
+    claudeKey = prevClaude; geminiKey = prevGemini; nvidiaProxy = prevNvidia; aiProvider = prevProvider;   // roll back — keep the session usable
     const m = String(e && e.message || e);
     const why = /401|invalid.?x?-?api|authentication/i.test(m) ? "✗ key rejected"
               : /403|permission/i.test(m)                     ? "✗ not permitted"
