@@ -783,7 +783,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       <label title="Override the current date for planning and what-if views" style="color:var(--muted); font-size:11.5px;">Today:</label>
       <input id="demoDate" type="date" style="width:140px; padding:5px 8px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:6px; font:inherit;" />
       <button id="themeBtn" title="Switch between daylight and night" style="background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 9px; font:inherit; font-size:12px; cursor:pointer;">☀︎</button>
-      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v4.9</span>
+      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v5.0</span>
       <span class="pill" id="modePill">Simulated AI</span>
       <span id="savePill" title="Your data is saved in this browser" style="font-size:11.5px; color:var(--muted); white-space:nowrap;">💾 —</span>
       <input type="file" id="snapInput" accept=".json" style="display:none" />
@@ -3444,7 +3444,7 @@ async function aiJSON(sys, prompt, opts){
         : prompt }]
 
     });
-    return parseLooseJSON(claudeText(j));
+    return parseLooseJSON(claudeText(j), o.lenient);
   }
   if(aiProvider === "nvidia"){
     const content = (o.images && o.images.length)
@@ -3455,7 +3455,7 @@ async function aiJSON(sys, prompt, opts){
     const j = await nvidiaRaw({ model: hasImages ? NVIDIA_VISION_MODEL : NVIDIA_MODEL,
       max_tokens: maxTokens, temperature: 0,
       messages: [{ role:"system", content: sys }, { role:"user", content }] });
-    return parseLooseJSON(nvidiaText(j));
+    return parseLooseJSON(nvidiaText(j), o.lenient);
   }
   const j = await geminiRaw({
     systemInstruction:{ parts:[{ text: sys }] },
@@ -3468,7 +3468,7 @@ async function aiJSON(sys, prompt, opts){
                        maxOutputTokens: o.geminiMaxTokens || maxTokens,
                        thinkingConfig:{ thinkingBudget:0 } }
   });
-  return parseLooseJSON(gemText(j));
+  return parseLooseJSON(gemText(j), o.lenient);
 }
 
 function providerLabel(){ return aiProvider === "claude" ? "Claude" : aiProvider === "nvidia" ? "NVIDIA" : "Gemini"; }
@@ -3480,13 +3480,21 @@ function detectProvider(k){
   if(/^AIza/.test(k))             return "gemini";
   return null;
 }
-function parseLooseJSON(t){ if(!t) throw new Error("Empty AI response.");
+// lenient: a chat turn should never die because the model answered in prose.
+// The strict path stays strict — Review, Digest and the importers need real fields.
+function parseLooseJSON(t, lenient){ if(!t) throw new Error("Empty AI response.");
   let s=t.replace(/```json/gi,"").replace(/```/g,"").trim();
   const a=s.indexOf("{"); if(a>0) s=s.slice(a); const b=s.lastIndexOf("}"); if(b>0) s=s.slice(0,b+1);
   try{ return JSON.parse(s); }catch(e){}
   try{ return JSON.parse(s.replace(/[\x00-\x1F]+/g," ")); }catch(e){}
   const last=s.lastIndexOf("}"); if(last>0){ const cut=s.slice(0,last+1).replace(/,\s*$/,""); for(const tail of ["]}","}}","]}}","}"]){ try{ return JSON.parse(cut+tail); }catch(e){} } }
-  throw new Error("Could not parse AI response.");
+  if(lenient){
+    // Not JSON. Show what it actually said rather than an error the user cannot act on.
+    const plain = String(t).replace(/```json/gi,"").replace(/```/g,"").trim();
+    if(plain) return { reply: plain, updates: [] };
+  }
+  const peek = String(t).replace(/\s+/g," ").trim().slice(0,200);
+  throw new Error("Could not parse AI response. It replied: " + (peek || "(nothing)"));
 }
 function projById(id){ if(!id) return null; const k=String(id).toLowerCase();
   return projects.find(p=>p.id.toLowerCase()===k)
@@ -3530,7 +3538,7 @@ async function aiChat(userText, images){
     + (notesCtx.length ? '\n\nNOTEBOOK PAGES (the 📝 Notes tab) — you can read, write and delete these:\n'+JSON.stringify(notesCtx) : '')
     + (convoCtx.length ? '\n\nCONVERSATION SO FAR (oldest first) — what you and the user have already said. Use it to resolve follow-ups like "that one", "do the same for the others", "why?":\n'+JSON.stringify(convoCtx) : '')
     + '\n\nUSER MESSAGE:\n'+userText;
-  return await aiJSON(sys, prompt, { maxTokens: 8192, geminiMaxTokens: 4096, effort: "low", images: images || [] });
+  return await aiJSON(sys, prompt, { maxTokens: 8192, geminiMaxTokens: 4096, effort: "low", images: images || [], lenient: true });
 }
 
 function applyAIResult(res){
