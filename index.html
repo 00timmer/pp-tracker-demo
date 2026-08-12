@@ -735,8 +735,8 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 
 
   /* Study view */
-  .st-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; }
-  .st-card { background:var(--panel2); border:1px solid var(--border); border-radius:16px; padding:10px 12px; }
+  .st-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:10px; }
+  .st-card { background:var(--panel2); border:1px solid var(--border); border-radius:16px; padding:10px 12px; min-width:0; overflow-x:auto; }
   .st-card h4 { margin:0 0 8px; font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); font-weight:700; }
   .st-row { display:flex; justify-content:space-between; gap:10px; padding:3px 0; font-size:12.5px; align-items:center; flex-wrap:wrap; }
   .st-row > span:first-child { color:var(--muted); white-space:nowrap; }
@@ -783,7 +783,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       <label title="Override the current date for planning and what-if views" style="color:var(--muted); font-size:11.5px;">Today:</label>
       <input id="demoDate" type="date" style="width:140px; padding:5px 8px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:6px; font:inherit;" />
       <button id="themeBtn" title="Switch between daylight and night" style="background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 9px; font:inherit; font-size:12px; cursor:pointer;">☀︎</button>
-      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v3.6</span>
+      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v3.7</span>
       <span class="pill" id="modePill">Simulated AI</span>
       <span id="savePill" title="Your data is saved in this browser" style="font-size:11.5px; color:var(--muted); white-space:nowrap;">💾 —</span>
       <select id="dataMenu" title="Saved data" style="background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font:inherit;font-size:12px;">
@@ -793,11 +793,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         <option value="reset">↺ Reset to sample data</option>
       </select>
       <input type="file" id="snapInput" accept=".json" style="display:none" />
-      <select id="providerSel" title="Which AI answers" style="background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font:inherit;font-size:12px;">
-        <option value="gemini">AI: Gemini</option>
-        <option value="claude">AI: Claude</option>
-      </select>
-      <input id="apiKey" type="password" placeholder="Gemini API key (optional)" />
+      <input id="apiKey" type="password" placeholder="Paste an API key — Gemini, Claude or NVIDIA" title="The prefix tells the app who the provider is: AIza… Gemini · sk-ant-… Claude · nvapi-… NVIDIA" />
       <button class="primary" id="connectBtn" style="padding:5px 10px; font-size:12px;">Connect</button>
       <span id="connStatus" style="font-size:11.5px; font-weight:600; white-space:nowrap;"></span>
     </div>
@@ -1513,7 +1509,7 @@ async function dbRestore(){
       ovHidden = { project: snap.ovHidden.project || [], owner: snap.ovHidden.owner || [] };
     }
     if(Array.isArray(snap.notes)) notes = snap.notes;
-  if(snap.aiProvider === "claude" || snap.aiProvider === "gemini"){ aiProvider = snap.aiProvider; try{ renderProvider(); }catch(e){} }
+  if(snap.aiProvider === "claude" || snap.aiProvider === "gemini" || snap.aiProvider === "nvidia"){ aiProvider = snap.aiProvider; try{ renderProvider(); }catch(e){} }
     lastSaved = snap.savedAt ? new Date(snap.savedAt) : null;
     renderTable(); renderLog(); renderTimelines(); renderDigest(); renderEdit(); fillCmpStudy(); renderUploads();
     renderSavePill();
@@ -3260,7 +3256,33 @@ function gemText(j){ const parts=(((j.candidates||[])[0]||{}).content||{}).parts
 // it lives in memory for the session only, because unlike a build-time key
 // an Anthropic key is billable and this file gets emailed around.
 const CLAUDE_MODEL = "claude-opus-5";
-let aiProvider = "gemini";   // "gemini" | "claude"
+
+// ── NVIDIA NIM (OpenAI-compatible) ──────────────────────────────
+// Heads-up: NVIDIA's API returns no Access-Control-Allow-Origin header, so a
+// browser blocks the call outright. The path below is complete and correct —
+// it works from a wrapper or behind a proxy, but not from a plain web page.
+const NVIDIA_MODEL = "meta/llama-3.1-70b-instruct";
+let nvidiaKey = "";
+async function nvidiaRaw(body){
+  if(!nvidiaKey) throw new Error("No NVIDIA API key. Paste one in the header and press Connect.");
+  let r;
+  try{
+    r = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+nvidiaKey },
+      body: JSON.stringify(body)
+    });
+  }catch(e){
+    throw new Error("NVIDIA refused the browser request. Their API sends no CORS header, "
+      + "so a web page cannot call it directly — it needs a small server-side proxy. "
+      + "Gemini and Claude both work from here.");
+  }
+  if(!r.ok){ const t = await r.text().catch(()=>""); throw new Error("NVIDIA "+r.status+" — "+t.slice(0,200)); }
+  return r.json();
+}
+function nvidiaText(j){ const c=(j&&j.choices||[])[0]; return (c && c.message && c.message.content) || ""; }
+
+let aiProvider = "gemini";   // "gemini" | "claude" | "nvidia"
 let claudeKey = "";          // session-only; never written to disk or IndexedDB
 
 async function claudeRaw(body){
@@ -3325,6 +3347,15 @@ async function aiJSON(sys, prompt, opts){
     });
     return parseLooseJSON(claudeText(j));
   }
+  if(aiProvider === "nvidia"){
+    const content = (o.images && o.images.length)
+      ? o.images.map(im => ({ type:"image_url", image_url:{ url:"data:"+im.mime+";base64,"+im.b64 } }))
+          .concat([{ type:"text", text: prompt }])
+      : prompt;
+    const j = await nvidiaRaw({ model: NVIDIA_MODEL, max_tokens: maxTokens, temperature: 0,
+      messages: [{ role:"system", content: sys }, { role:"user", content }] });
+    return parseLooseJSON(nvidiaText(j));
+  }
   const j = await geminiRaw({
     systemInstruction:{ parts:[{ text: sys }] },
     contents:[{ parts: (o.images && o.images.length)
@@ -3339,7 +3370,14 @@ async function aiJSON(sys, prompt, opts){
   return parseLooseJSON(gemText(j));
 }
 
-function providerLabel(){ return aiProvider === "claude" ? "Claude" : "Gemini"; }
+function providerLabel(){ return aiProvider === "claude" ? "Claude" : aiProvider === "nvidia" ? "NVIDIA" : "Gemini"; }
+// One box, no dropdown: the key itself says who the provider is.
+function detectProvider(k){
+  if(/^nvapi-/i.test(k))  return "nvidia";
+  if(/^sk-ant-/i.test(k)) return "claude";
+  if(/^AIza/.test(k))     return "gemini";
+  return null;
+}
 function parseLooseJSON(t){ if(!t) throw new Error("Empty AI response.");
   let s=t.replace(/```json/gi,"").replace(/```/g,"").trim();
   const a=s.indexOf("{"); if(a>0) s=s.slice(a); const b=s.lastIndexOf("}"); if(b>0) s=s.slice(0,b+1);
@@ -3495,33 +3533,20 @@ function renderProvider(){
   pill.classList.add("on");
   const key = document.getElementById("apiKey");
   if(aiProvider === "claude"){
-    key.placeholder = claudeKey ? "Anthropic key set for this session" : "Anthropic API key (sk-ant-… — required)";
+    key.placeholder = claudeKey ? "Anthropic key set for this session" : "Paste an API key — Gemini, Claude or NVIDIA";
     key.style.borderColor = claudeKey ? "" : "var(--warn)";
     pill.title = "Claude " + CLAUDE_MODEL + " · your key, this session only";
+  } else if(aiProvider === "nvidia"){
+    key.placeholder = nvidiaKey ? "NVIDIA key set for this session" : "Paste an API key — Gemini, Claude or NVIDIA";
+    key.style.borderColor = nvidiaKey ? "" : "var(--warn)";
+    pill.title = "NVIDIA " + NVIDIA_MODEL + " · your key, this session only";
   } else {
-    key.placeholder = "Gemini API key (optional)";
+    key.placeholder = "Paste an API key — Gemini, Claude or NVIDIA";
     key.style.borderColor = "";
-    pill.title = "Gemini free tier";
+    pill.title = "Gemini · your key, this session only";
   }
-  const sel = document.getElementById("providerSel");
-  if(sel.value !== aiProvider) sel.value = aiProvider;
 }
 
-document.getElementById("providerSel").onchange = e => {
-  aiProvider = e.target.value;
-  renderProvider();
-  // A tick earned by Gemini must not be shown while Claude is selected, and vice versa.
-  const haveKey = aiProvider === "claude" ? !!claudeKey : true;
-  setConnStatus(haveKey ? "wait" : "bad",
-    haveKey ? "● not tested" : "✗ no key",
-    haveKey ? "Press Connect to send a live test request." : "Paste an Anthropic key, then press Connect.");
-  dbTouch();   // remember the choice (the key itself is never saved)
-  if(aiProvider === "claude" && !claudeKey){
-    addMsg("system", "Switched to <b>Claude</b>. Paste your Anthropic API key in the header and press <b>Connect</b> — it's kept in memory for this session only, never saved to the file. Get one at <b>console.anthropic.com → Billing → API Keys</b>.");
-  } else {
-    addMsg("system", `Switched to <b>${aiProvider === "claude" ? "Claude " + CLAUDE_MODEL : "Gemini"}</b>.`);
-  }
-};
 
 // Connect no longer just *stores* the key — it TESTS it, so you never have to guess
 // whether it worked. Status shows inline next to the button and never disappears
@@ -3543,6 +3568,11 @@ async function testConnection(){
       messages: [{ role:"user", content:"Reply with: OK" }] });
     return "Claude " + (j.model || CLAUDE_MODEL);
   }
+  if(aiProvider === "nvidia"){
+    const j = await nvidiaRaw({ model: NVIDIA_MODEL, max_tokens: 4,
+      messages: [{ role:"user", content:"Reply with: OK" }] });
+    return "NVIDIA " + ((j && j.model) || NVIDIA_MODEL);
+  }
   await geminiRaw({ contents:[{parts:[{text:"Reply with: OK"}]}],
     generationConfig:{maxOutputTokens:4, temperature:0, thinkingConfig:{thinkingBudget:0}} });
   return "Gemini";
@@ -3554,18 +3584,29 @@ document.getElementById("connectBtn").onclick = async () => {
   const k   = el.value.trim();
 
   // Remember what was working, so a bad new key doesn't silently break a good session.
-  const prevClaude = claudeKey, prevGemini = geminiKey;
+  const prevClaude = claudeKey, prevGemini = geminiKey, prevNvidia = nvidiaKey, prevProvider = aiProvider;
 
-  if(aiProvider === "claude"){
-    if(!k && !claudeKey){
-      setConnStatus("bad", "✗ no key", "Paste your Anthropic key (sk-ant-…) from console.anthropic.com → API Keys.");
-      alert("Paste your Anthropic API key (starts with sk-ant-). Get one at console.anthropic.com → Billing → API Keys.");
+  if(k){
+    // No dropdown: the prefix decides who answers.
+    const who = detectProvider(k);
+    if(!who){
+      setConnStatus("bad", "✗ key not recognised",
+        "Recognised prefixes: AIza… (Gemini), sk-ant-… (Claude), nvapi-… (NVIDIA).");
+      addMsg("system", "⚠️ <b>That key wasn't recognised.</b> The prefix tells the app which provider to use — "
+        + "<b>AIza…</b> Google Gemini · <b>sk-ant-…</b> Anthropic Claude · <b>nvapi-…</b> NVIDIA.");
       return;
     }
-    if(k && !/^sk-ant-/.test(k) && !confirm("That doesn't look like an Anthropic key (they start with sk-ant-). Use it anyway?")) return;
-    if(k) claudeKey = k;
+    aiProvider = who;
+    if(who === "claude")      claudeKey = k;
+    else if(who === "nvidia") nvidiaKey = k;
+    else                      geminiKey = k;
+    dbTouch();                       // remember the provider (never the key)
   } else {
-    if(k) geminiKey = k;
+    const missing = (aiProvider === "claude" && !claudeKey) || (aiProvider === "nvidia" && !nvidiaKey);
+    if(missing){
+      setConnStatus("bad", "✗ no key", "Paste a key first — AIza… (Gemini), sk-ant-… (Claude) or nvapi-… (NVIDIA).");
+      return;
+    }
   }
 
   el.value = "";                       // never leave the key sitting in the DOM
@@ -3576,9 +3617,9 @@ document.getElementById("connectBtn").onclick = async () => {
     const who = await testConnection();
     setConnStatus("ok", "✓ connected", who + " answered a live test request.");
     addMsg("system", `✅ <b>Connected — ${who}.</b> The key works; it answered a live test request. `
-      + (aiProvider === "claude" ? "Claude is now answering." : "Gemini is now answering."));
+      + providerLabel() + " is now answering.");
   }catch(e){
-    claudeKey = prevClaude; geminiKey = prevGemini;   // roll back — keep the session usable
+    claudeKey = prevClaude; geminiKey = prevGemini; nvidiaKey = prevNvidia; aiProvider = prevProvider;   // roll back — keep the session usable
     const m = String(e && e.message || e);
     const why = /401|invalid.?x?-?api|authentication/i.test(m) ? "✗ key rejected"
               : /403|permission/i.test(m)                     ? "✗ not permitted"
