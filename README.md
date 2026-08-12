@@ -50,6 +50,13 @@ origins can use the Worker, so the URL leaking does not give away your credits.
 
 Never paste an `nvapi-` key into the app itself; the app will tell you so.
 
+Once the proxy is set, a model picker appears next to the key box. Available models
+(verified against NVIDIA's `/v1/models`):
+
+- `z-ai/glm-5.2` (default)
+- `minimaxai/minimax-m3`
+- `meta/llama-3.1-70b-instruct`
+
 Both are called directly from the browser; there is no proxy and no server, so no key ever reaches
 a third party.
 
