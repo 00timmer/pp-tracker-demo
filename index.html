@@ -783,7 +783,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       <label title="Override the current date for planning and what-if views" style="color:var(--muted); font-size:11.5px;">Today:</label>
       <input id="demoDate" type="date" style="width:140px; padding:5px 8px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:6px; font:inherit;" />
       <button id="themeBtn" title="Switch between daylight and night" style="background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 9px; font:inherit; font-size:12px; cursor:pointer;">☀︎</button>
-      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v4.3</span>
+      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v4.4</span>
       <span class="pill" id="modePill">Simulated AI</span>
       <span id="savePill" title="Your data is saved in this browser" style="font-size:11.5px; color:var(--muted); white-space:nowrap;">💾 —</span>
       <input type="file" id="snapInput" accept=".json" style="display:none" />
@@ -1742,7 +1742,12 @@ function renderExamples(){
   document.getElementById("examples").innerHTML =
     examplesChat.map(t => `<button data-ex="${t.replace(/"/g,'&quot;')}">${t}</button>`).join("");
   document.querySelectorAll("#examples button").forEach(b => {
-    b.onclick = () => { document.getElementById("userInput").value = b.dataset.ex; document.getElementById("userInput").focus(); };
+    b.onclick = () => {
+      // Fill the visible chat bar, not the hidden Chat-tab input.
+      const bar = document.getElementById("gAsk") || document.getElementById("userInput");
+      bar.value = b.dataset.ex;
+      bar.focus();
+    };
   });
 }
 
@@ -1898,7 +1903,10 @@ function switchMode(){
   document.getElementById("editView").style.display     = (dataOn && dataSub==="edit") ? "flex" : "none";
   document.getElementById("reviewView").style.display   = mode==="review"   ? "flex"  : "none";
   document.getElementById("chat").style.display         = (mode==="chat" || (dataOn && dataSub==="import")) ? "flex" : "none";
-  document.getElementById("inputRow").style.display     = mode==="chat" ? "flex" : "none";
+  // Hidden always. The chat bar pinned to the bottom of every tab is the only
+  // input now; #userInput stays in the DOM because handleSend and globalAsk both
+  // route through it.
+  document.getElementById("inputRow").style.display     = "none";
   document.getElementById("examples").style.display     = mode==="chat" ? "flex" : "none";
   if(mode === "chat"){
     document.getElementById("userInput").placeholder = 'Just type — update or question. e.g. "STU-103 wrapped up TFL QC, 90%" or "What\'s due this week?"';
