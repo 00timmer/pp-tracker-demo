@@ -26,36 +26,10 @@ but the provider.
 
 - **Google Gemini** — free tier available at [aistudio.google.com](https://aistudio.google.com/apikey)
 - **Anthropic Claude** (`claude-opus-5`) — [console.anthropic.com](https://console.anthropic.com)
-- **NVIDIA** — via a proxy, see below
 
 There is no provider dropdown. The prefix identifies the key: `AIza…` is Gemini,
-`sk-ant-…` is Claude, and an `https://….workers.dev` URL is the NVIDIA proxy.
+and `sk-ant-…` is Claude.
 
-### NVIDIA needs a proxy
-
-NVIDIA's API sends no `Access-Control-Allow-Origin` header, so a browser refuses to
-call it from a web page. `worker.js` in this repo is a small Cloudflare Worker that
-adds the CORS headers and keeps the key server-side:
-
-```
-npm i -g wrangler
-wrangler login
-wrangler deploy
-wrangler secret put NVIDIA_KEY     # paste your nvapi-… key here, not into the app
-```
-
-Paste the resulting `https://….workers.dev` URL into the app's key box. Edit
-`ALLOWED_ORIGINS` in `worker.js` if you host the page somewhere else — only listed
-origins can use the Worker, so the URL leaking does not give away your credits.
-
-Never paste an `nvapi-` key into the app itself; the app will tell you so.
-
-Once the proxy is set, a model picker appears next to the key box. Available models
-(verified against NVIDIA's `/v1/models`):
-
-- `z-ai/glm-5.2` (default)
-- `minimaxai/minimax-m3`
-- `meta/llama-3.1-70b-instruct`
 
 Both are called directly from the browser; there is no proxy and no server, so no key ever reaches
 a third party.
