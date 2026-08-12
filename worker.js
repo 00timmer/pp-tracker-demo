@@ -14,8 +14,11 @@
 // Then copy the printed https://<name>.<you>.workers.dev URL and paste it into
 // the API-key box in PP Tracker. The app recognises a URL as the NVIDIA proxy.
 //
-// Only the origins below may use it, so the URL leaking does not hand someone
-// else your NVIDIA credits.
+// The Worker URL is public: it ships inside the app, because a static page cannot
+// keep a secret. ALLOWED_ORIGINS stops other *websites* from using it (browsers set
+// Origin honestly), but a client that forges the header is not stopped by it — so a
+// per-IP rate limit bounds what any single caller can consume. The API key itself is
+// never exposed either way; it stays in the NVIDIA_KEY secret, server-side.
 
 const ALLOWED_ORIGINS = [
   "https://00timmer.github.io",
@@ -54,6 +57,18 @@ export default {
         JSON.stringify({ error: "Origin not allowed: " + (origin || "(none)") }),
         { status: 403, headers: { "Content-Type": "application/json" } }
       );
+    }
+
+    // Rate limit before doing any upstream work, so abuse costs nothing.
+    if (env.RATE_LIMITER) {
+      const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+      const { success } = await env.RATE_LIMITER.limit({ key: ip });
+      if (!success) {
+        return new Response(
+          JSON.stringify({ error: "Rate limit reached — 20 requests a minute. Try again shortly." }),
+          { status: 429, headers: { "Content-Type": "application/json", ...corsHeaders(origin) } }
+        );
+      }
     }
 
     if (request.method !== "POST") {

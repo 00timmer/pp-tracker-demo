@@ -4,3 +4,12 @@ compatibility_date = "2026-08-11"
 
 # The API key is NOT set here — it is a secret, kept out of the repo:
 #   wrangler secret put NVIDIA_KEY
+
+# Per-IP rate limit. The Worker URL is public (it ships in the app), so this
+# caps what any single caller can consume. 20 requests per minute is generous
+# for a person using the tracker and useless for anyone scraping quota.
+[[unsafe.bindings]]
+name = "RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 20, period = 60 }
