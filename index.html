@@ -2341,7 +2341,10 @@ function runDataAction(action){
 function detectDataIntent(t){
   if(!t) return null;
   const s = t.toLowerCase().trim();
-  if(s.length > 90) return null;                       // a sentence this long is a real question
+  // These verbs are commands, and commands are short. "Can you export a summary of
+  // what Alex is working on and why it slipped" is a question that happens to contain
+  // "export" — a word cap separates the two far better than a character count.
+  if(s.split(/\s+/).length > 8) return null;
   if(/\b(reset|start over|wipe|clear)\b/.test(s) && /\b(sample|demo|original|data|everything|tracker)\b/.test(s))
     return "reset";
   const wantsOut = /\b(export|download|save|back ?up)\b/.test(s);
