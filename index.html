@@ -783,15 +783,9 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       <label title="Override the current date for planning and what-if views" style="color:var(--muted); font-size:11.5px;">Today:</label>
       <input id="demoDate" type="date" style="width:140px; padding:5px 8px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:6px; font:inherit;" />
       <button id="themeBtn" title="Switch between daylight and night" style="background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 9px; font:inherit; font-size:12px; cursor:pointer;">☀︎</button>
-      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v4.1</span>
+      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v4.3</span>
       <span class="pill" id="modePill">Simulated AI</span>
       <span id="savePill" title="Your data is saved in this browser" style="font-size:11.5px; color:var(--muted); white-space:nowrap;">💾 —</span>
-      <select id="dataMenu" title="Saved data" style="background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font:inherit;font-size:12px;">
-        <option value="">Data ▾</option>
-        <option value="export">⤓ Export snapshot (.json)</option>
-        <option value="import">⤒ Import snapshot…</option>
-        <option value="reset">↺ Reset to sample data</option>
-      </select>
       <input type="file" id="snapInput" accept=".json" style="display:none" />
       <input id="apiKey" type="password" placeholder="Optional — paste a Gemini or Claude key to switch" title="The prefix tells the app who the provider is: AIza… Gemini · sk-ant-… Claude · nvapi-… NVIDIA" />
       <select id="nvModel" title="Which NVIDIA model answers" style="display:none; background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:5px 8px;font:inherit;font-size:12px;"></select>
@@ -1521,7 +1515,7 @@ async function dbRestore(){
     addMsg("system", `Restored your saved data — <b>${projects.length}</b> projects, ` +
       `<b>${projects.reduce((n,p)=>n+((p.timeline||[]).length),0)}</b> timeline tasks` +
       (snap.savedAt ? ` (last saved ${snap.savedAt.slice(0,16).replace("T"," ")})` : "") +
-      `. Use <b>Data ▾ → Reset to sample data</b> to start over.`);
+      `. Ask the AI to <b>"reset to sample data"</b> to start over.`);
   } else {
     renderSavePill();
     dbSave();   // seed the store so the first real edit has somewhere to go
@@ -2316,13 +2310,48 @@ renderUploads();
 // Portfolio rubric review
 document.getElementById("runReviewBtn").onclick = runReview;
 
-// Data menu — snapshot in/out and reset. Resets to a plain label after each action.
-document.getElementById("dataMenu").onchange = e => {
-  const v = e.target.value; e.target.value = "";
-  if(v === "export") dbExportSnapshot();
-  else if(v === "import") document.getElementById("snapInput").click();
-  else if(v === "reset") dbResetToSeed();
-};
+// The Data menu is gone — ask the AI instead ("export the tracker", "reset to
+// sample data"). runDataAction is the single place those verbs are carried out,
+// so the chat bar and the AI both go through identical code.
+function runDataAction(action){
+  switch(action){
+    case "export_xlsx":
+      document.getElementById("exportBtn").click();
+      return "📊 Exporting the tracker, log and timelines as .xlsx…";
+    case "export_snapshot":
+      dbExportSnapshot();
+      return "⤓ Exporting a .json snapshot of everything…";
+    case "import_snapshot":
+      document.getElementById("snapInput").click();
+      return "⤒ Pick the .json snapshot to restore.";
+    case "import_file":
+      document.getElementById("gAttachInput").click();
+      return "📎 Pick a spreadsheet, timeline or text file — I'll read it and update the tracker.";
+    case "reset":
+      dbResetToSeed();          // asks for confirmation itself
+      return null;              // it posts its own message
+    default:
+      return null;
+  }
+}
+
+// Plain-language routing for the handful of verbs that used to be menu items.
+// Done client-side so they work instantly, cost no tokens, and behave the same
+// with or without an AI key configured.
+function detectDataIntent(t){
+  if(!t) return null;
+  const s = t.toLowerCase().trim();
+  if(s.length > 90) return null;                       // a sentence this long is a real question
+  if(/\b(reset|start over|wipe|clear)\b/.test(s) && /\b(sample|demo|original|data|everything|tracker)\b/.test(s))
+    return "reset";
+  const wantsOut = /\b(export|download|save|back ?up)\b/.test(s);
+  if(wantsOut && /\b(snapshot|json|backup|back ?up)\b/.test(s)) return "export_snapshot";
+  if(wantsOut) return "export_xlsx";                   // .xlsx is the default export
+  if(/\b(import|restore)\b/.test(s) && /\b(snapshot|json|backup)\b/.test(s)) return "import_snapshot";
+  if(/\b(upload|import|attach|add)\b.*\b(file|excel|xlsx|spreadsheet|timeline|csv)\b/.test(s)
+     || /^(upload|import|attach)( a| the)? ?(file)?$/.test(s)) return "import_file";
+  return null;
+}
 document.getElementById("snapInput").onchange = e => {
   const f = e.target.files[0];
   e.target.value = "";
@@ -3417,7 +3446,7 @@ async function aiChat(userText, images){
                                         owner:t.owner||"", level:(t.level==null?"":t.level) })) }));
   // The audit log lets it answer "what changed this week / who changed what".
   const logCtx = (auditLog||[]).slice(-120).map(e=>({ at:e.when, kind:e.what, said:e.raw, effect:e.summary }));
-  const sys='You are the AI engine of a clinical-biometrics project status tracker. Read the current tracker state and the user message, decide whether they are UPDATING the tracker or ASKING a question, and respond with ONLY JSON: {"reply":"<concise message to show in chat>","updates":[{"projectId":"<exact id>","set":{"status":"<one of: 🟢 Green | 🟡 Yellow | 🔴 Red | ⚪ On Hold>","pct":<0-100 number>,"due":"YYYY-MM-DD","lead":"<name>","next":"<next milestone>","blocker":"<text, empty string to clear>","completedDate":"YYYY-MM-DD","phase":"<phase>","sponsor":"<name>","owner":"<name>","id":"<new id — renames the project>","studyStatus":"<Startup|Enrolling|Enrollment complete|LPLV|DB Lock|Completed|On Hold|Terminated>","fpi":"YYYY-MM-DD","lplv":"YYYY-MM-DD","dbLock":"YYYY-MM-DD","csrDue":"YYYY-MM-DD","protocol":"<text>","indication":"<text>","studyPhase":"<I|I/II|II|II/III|III|IV>","nSubjects":<number>,"nSites":<number>,"cro":"<text>","biostat":"<name>","dmLead":"<name>","medMonitor":"<name>","notes":"<text>","risks":"<text>","sapStatus":"<Not started|In progress|In QC|Complete|N/A>","sapDate":"YYYY-MM-DD","shellsStatus":"<same set>","shellsDate":"YYYY-MM-DD","sdtmStatus":"<same set>","sdtmDate":"YYYY-MM-DD","adamStatus":"<same set>","adamDate":"YYYY-MM-DD","tflStatus":"<same set>","tflDate":"YYYY-MM-DD","defineStatus":"<same set>","defineDate":"YYYY-MM-DD","submissionStatus":"<same set>","submissionDate":"YYYY-MM-DD"}}],"timelineOps":[{"projectId":"<id>","op":"add|update|delete","task":"<task name or fragment to match>","start":"YYYY-MM-DD","finish":"YYYY-MM-DD","pct":<0-100>}],"deletes":[{"projectId":"<exact id>","reason":"<short>"}],"creates":[{"id":"<new project id>","lead":"<name>","phase":"<SDTM|ADaM|TFL|SAP|Analysis|Submission|other>","status":"<one of the four emoji strings>","pct":<0-100>,"next":"<next milestone>","due":"YYYY-MM-DD","blocker":"<text>","sponsor":"<name>","owner":"<name>","timeline":[{"task":"<name>","start":"YYYY-MM-DD","finish":"YYYY-MM-DD","pct":<0-100>}]}]}. RULES: In each "set" include ONLY the fields that actually change. Status MUST be one of the four exact emoji strings. Resolve ALL relative dates ("today","tomorrow","next Friday","in 2 weeks","end of June","mid-July","push by 2 weeks","slip a week","delay 3 days") against TODAY='+todayISO()+'. Match a project by exact id or alias; if you cannot tell which project, leave updates empty and ask in reply. If % reaches 100, also set completedDate to today. UPDATE TARGET — DEFAULT TO PROJECT-LEVEL: when the user reports a status, %, due date, lead, or blocker for a project (e.g. "STU-103 is 90%", "STU-201 delivered"), put it in updates[].set for that project. Use timelineOps ONLY when the user clearly refers to a specific timeline TASK. TIMELINE EDITING (plain language): "op":"add" to add a new task (include task name, start, finish, and pct if given) — e.g. "add task TFL QC round 2 to STU-103, start 2026-07-01 finish 2026-07-15"; "op":"update" to change an existing task — e.g. "STU-103 task QC + sign-off is 90%", "push STU-103 Final delivery to 2026-07-20". For op:"update" you MUST copy the task name EXACTLY as it appears in that project\'s timeline in the data — never invent, shorten, or paraphrase a task name; if no timeline task clearly matches the user\'s wording, do NOT guess — instead update the project or ask which task in reply. DELETING PROJECTS: use "deletes" when the user clearly asks to remove/delete/drop/archive/get rid of one or more projects (e.g. "delete STU-405", "remove the projects that are done", "drop STU-404 and STU-405", "clean up anything closed"). Put ONE entry per project with its exact id and a short reason. If the request describes a GROUP rather than naming ids ("delete everything that is complete", "remove the on-hold ones"), work out which projects match from the data and list each one — never delete a project that does not match. If you are not sure which projects are meant, leave "deletes" empty and ask in reply which ones. Deleting is always the user\'s call: never volunteer a deletion they did not ask for, and never delete as a side effect of an update. For pure questions, leave updates, timelineOps and deletes empty and put the answer in reply — be specific, cite the numbers/dates/owners/% from the data; you may use simple <b> and <br> HTML. Keep reply concise. You CAN and SHOULD answer time-window and delivery questions from the timeline tasks and project fields — never refuse them. Definitions relative to TODAY: a timeline task is DELIVERED/complete when its pct=100 (its finish date = the delivery date); IN PROGRESS when 0<pct<100; DUE within a window when its finish date falls in that window; SLIPPED when finish<TODAY and pct<100. A project also counts as delivered when its pct=100 or completedDate is set. Windows are calendar-based relative to TODAY: "this week"/"last week"/"next week" = Monday–Sunday weeks; "this month"/"last month" = calendar months. Example — "what did we deliver last week": list every timeline task (grouped by project) whose finish date is within last week AND pct=100, plus any project completed in that window; if none, say so plainly. IMAGES: the user may paste or attach a screenshot — typically a timeline, Gantt, schedule, spreadsheet or email. Read it carefully and act on it exactly as if they had typed its contents: extract project ids, task names, dates and percentages, and put them in updates/timelineOps/creates. Report in "reply" what you read and what you changed. If the image is unreadable or ambiguous, say so and ask — never invent dates or names that are not legible in the picture. STUDY RECORD: each project also carries a "study" object — clinical status (studyStatus) and key dates (fpi, lplv, dbLock, csrDue), design (protocol, indication, studyPhase, nSubjects, nSites, cro), contacts (biostat, dmLead, medMonitor), free text (notes, risks), and a status+date per biometrics deliverable (sapStatus/sapDate, shellsStatus/shellsDate, sdtmStatus/sdtmDate, adamStatus/adamDate, tflStatus/tflDate, defineStatus/defineDate, submissionStatus/submissionDate). Set ANY of these through updates[].set, and use them when answering — "studyStatus" is where the study is CLINICALLY (enrolling, DB lock) and is a different axis from "status", which is delivery health (🟢🟡🔴⚪). Never confuse the two. FULL ACCESS — you have complete READ and WRITE control of this workspace. You may create projects ("creates" — use it whenever the user asks to add/create/start/set up a new project or study, and give it a timeline if they describe one), rename or re-assign any project (put "id", "phase", "sponsor", "owner" in "set"), edit any project field, add/update/DELETE timeline tasks ("op":"delete" removes the task), and delete projects. Never say you are unable to change something — if the user asks for it, do it. The only limits: never delete anything the user did not ask you to delete, and if a request is ambiguous, ask in "reply" instead of guessing. You also receive the ACTIVITY LOG, so you can answer what changed, when, and what the user said to cause it. GENERAL PRINCIPLE: You hold the COMPLETE tracker for ALL projects plus each project\'s FULL timeline (status, %, due date, lead, sponsor, phase, blocker, completedDate, and every task with its dates and %). For ANY question, scan ALL projects and ALL tasks before answering, then give a concise SYNTHESIZED summary — counts, sensibly grouped lists, and the key numbers/dates/owners/blockers. The "blocker" field is that project\'s issue/risk — use it for questions about issues, risks, problems, what is blocked, or what needs attention. SOURCES: when an UPLOADED SOURCES block is present it tells you which file each project\'s data came from, when it was read, and the user\'s own description of it. Use it to answer provenance questions ("where did these dates come from?", "what have we loaded for STU-103?", "what is the newest file?"), and when a description carries a caveat, repeat that caveat alongside any number it affects rather than stating the number flatly. Each source\'s "read" field is the timestamp when the app ingested that file, formatted YYYY-MM-DD HH:MM. For newest/oldest/most-recent questions, compare those timestamps as dates — the NEWEST source is the one with the LARGEST "read" value (later date wins; only compare the time when the dates are equal). Sources are listed newest-first, so the first entry is normally the most recent. Examples you must handle: overall portfolio status, what is at risk/blocked, what is overdue or slipping, who owns what, workload per lead, status by sponsor or phase, what is due/upcoming, recently delivered, % progress, and overall summaries. NEVER reply that you can only track limited things — if the answer is derivable from this data, compute and answer it; only if a specific detail is genuinely absent, say what IS known. FORMAT: keep answers short and scannable — lead with the answer, no preamble. Use short bullet lines starting with "• ", group sensibly, wrap project IDs and key numbers/dates in <b>…</b>, and separate lines with <br>. Default to brevity.';
+  const sys='You are the AI engine of a clinical-biometrics project status tracker. Read the current tracker state and the user message, decide whether they are UPDATING the tracker or ASKING a question, and respond with ONLY JSON: {"reply":"<concise message to show in chat>","action":"<optional, one of: export_xlsx | export_snapshot | import_snapshot | import_file | reset — set ONLY when the user is clearly asking to export, download, back up, import, upload a file, or reset the tracker; otherwise omit>","updates":[{"projectId":"<exact id>","set":{"status":"<one of: 🟢 Green | 🟡 Yellow | 🔴 Red | ⚪ On Hold>","pct":<0-100 number>,"due":"YYYY-MM-DD","lead":"<name>","next":"<next milestone>","blocker":"<text, empty string to clear>","completedDate":"YYYY-MM-DD","phase":"<phase>","sponsor":"<name>","owner":"<name>","id":"<new id — renames the project>","studyStatus":"<Startup|Enrolling|Enrollment complete|LPLV|DB Lock|Completed|On Hold|Terminated>","fpi":"YYYY-MM-DD","lplv":"YYYY-MM-DD","dbLock":"YYYY-MM-DD","csrDue":"YYYY-MM-DD","protocol":"<text>","indication":"<text>","studyPhase":"<I|I/II|II|II/III|III|IV>","nSubjects":<number>,"nSites":<number>,"cro":"<text>","biostat":"<name>","dmLead":"<name>","medMonitor":"<name>","notes":"<text>","risks":"<text>","sapStatus":"<Not started|In progress|In QC|Complete|N/A>","sapDate":"YYYY-MM-DD","shellsStatus":"<same set>","shellsDate":"YYYY-MM-DD","sdtmStatus":"<same set>","sdtmDate":"YYYY-MM-DD","adamStatus":"<same set>","adamDate":"YYYY-MM-DD","tflStatus":"<same set>","tflDate":"YYYY-MM-DD","defineStatus":"<same set>","defineDate":"YYYY-MM-DD","submissionStatus":"<same set>","submissionDate":"YYYY-MM-DD"}}],"timelineOps":[{"projectId":"<id>","op":"add|update|delete","task":"<task name or fragment to match>","start":"YYYY-MM-DD","finish":"YYYY-MM-DD","pct":<0-100>}],"deletes":[{"projectId":"<exact id>","reason":"<short>"}],"creates":[{"id":"<new project id>","lead":"<name>","phase":"<SDTM|ADaM|TFL|SAP|Analysis|Submission|other>","status":"<one of the four emoji strings>","pct":<0-100>,"next":"<next milestone>","due":"YYYY-MM-DD","blocker":"<text>","sponsor":"<name>","owner":"<name>","timeline":[{"task":"<name>","start":"YYYY-MM-DD","finish":"YYYY-MM-DD","pct":<0-100>}]}]}. RULES: In each "set" include ONLY the fields that actually change. Status MUST be one of the four exact emoji strings. Resolve ALL relative dates ("today","tomorrow","next Friday","in 2 weeks","end of June","mid-July","push by 2 weeks","slip a week","delay 3 days") against TODAY='+todayISO()+'. Match a project by exact id or alias; if you cannot tell which project, leave updates empty and ask in reply. If % reaches 100, also set completedDate to today. UPDATE TARGET — DEFAULT TO PROJECT-LEVEL: when the user reports a status, %, due date, lead, or blocker for a project (e.g. "STU-103 is 90%", "STU-201 delivered"), put it in updates[].set for that project. Use timelineOps ONLY when the user clearly refers to a specific timeline TASK. TIMELINE EDITING (plain language): "op":"add" to add a new task (include task name, start, finish, and pct if given) — e.g. "add task TFL QC round 2 to STU-103, start 2026-07-01 finish 2026-07-15"; "op":"update" to change an existing task — e.g. "STU-103 task QC + sign-off is 90%", "push STU-103 Final delivery to 2026-07-20". For op:"update" you MUST copy the task name EXACTLY as it appears in that project\'s timeline in the data — never invent, shorten, or paraphrase a task name; if no timeline task clearly matches the user\'s wording, do NOT guess — instead update the project or ask which task in reply. DELETING PROJECTS: use "deletes" when the user clearly asks to remove/delete/drop/archive/get rid of one or more projects (e.g. "delete STU-405", "remove the projects that are done", "drop STU-404 and STU-405", "clean up anything closed"). Put ONE entry per project with its exact id and a short reason. If the request describes a GROUP rather than naming ids ("delete everything that is complete", "remove the on-hold ones"), work out which projects match from the data and list each one — never delete a project that does not match. If you are not sure which projects are meant, leave "deletes" empty and ask in reply which ones. Deleting is always the user\'s call: never volunteer a deletion they did not ask for, and never delete as a side effect of an update. For pure questions, leave updates, timelineOps and deletes empty and put the answer in reply — be specific, cite the numbers/dates/owners/% from the data; you may use simple <b> and <br> HTML. Keep reply concise. You CAN and SHOULD answer time-window and delivery questions from the timeline tasks and project fields — never refuse them. Definitions relative to TODAY: a timeline task is DELIVERED/complete when its pct=100 (its finish date = the delivery date); IN PROGRESS when 0<pct<100; DUE within a window when its finish date falls in that window; SLIPPED when finish<TODAY and pct<100. A project also counts as delivered when its pct=100 or completedDate is set. Windows are calendar-based relative to TODAY: "this week"/"last week"/"next week" = Monday–Sunday weeks; "this month"/"last month" = calendar months. Example — "what did we deliver last week": list every timeline task (grouped by project) whose finish date is within last week AND pct=100, plus any project completed in that window; if none, say so plainly. IMAGES: the user may paste or attach a screenshot — typically a timeline, Gantt, schedule, spreadsheet or email. Read it carefully and act on it exactly as if they had typed its contents: extract project ids, task names, dates and percentages, and put them in updates/timelineOps/creates. Report in "reply" what you read and what you changed. If the image is unreadable or ambiguous, say so and ask — never invent dates or names that are not legible in the picture. STUDY RECORD: each project also carries a "study" object — clinical status (studyStatus) and key dates (fpi, lplv, dbLock, csrDue), design (protocol, indication, studyPhase, nSubjects, nSites, cro), contacts (biostat, dmLead, medMonitor), free text (notes, risks), and a status+date per biometrics deliverable (sapStatus/sapDate, shellsStatus/shellsDate, sdtmStatus/sdtmDate, adamStatus/adamDate, tflStatus/tflDate, defineStatus/defineDate, submissionStatus/submissionDate). Set ANY of these through updates[].set, and use them when answering — "studyStatus" is where the study is CLINICALLY (enrolling, DB lock) and is a different axis from "status", which is delivery health (🟢🟡🔴⚪). Never confuse the two. FULL ACCESS — you have complete READ and WRITE control of this workspace. You may create projects ("creates" — use it whenever the user asks to add/create/start/set up a new project or study, and give it a timeline if they describe one), rename or re-assign any project (put "id", "phase", "sponsor", "owner" in "set"), edit any project field, add/update/DELETE timeline tasks ("op":"delete" removes the task), and delete projects. Never say you are unable to change something — if the user asks for it, do it. The only limits: never delete anything the user did not ask you to delete, and if a request is ambiguous, ask in "reply" instead of guessing. You also receive the ACTIVITY LOG, so you can answer what changed, when, and what the user said to cause it. GENERAL PRINCIPLE: You hold the COMPLETE tracker for ALL projects plus each project\'s FULL timeline (status, %, due date, lead, sponsor, phase, blocker, completedDate, and every task with its dates and %). For ANY question, scan ALL projects and ALL tasks before answering, then give a concise SYNTHESIZED summary — counts, sensibly grouped lists, and the key numbers/dates/owners/blockers. The "blocker" field is that project\'s issue/risk — use it for questions about issues, risks, problems, what is blocked, or what needs attention. SOURCES: when an UPLOADED SOURCES block is present it tells you which file each project\'s data came from, when it was read, and the user\'s own description of it. Use it to answer provenance questions ("where did these dates come from?", "what have we loaded for STU-103?", "what is the newest file?"), and when a description carries a caveat, repeat that caveat alongside any number it affects rather than stating the number flatly. Each source\'s "read" field is the timestamp when the app ingested that file, formatted YYYY-MM-DD HH:MM. For newest/oldest/most-recent questions, compare those timestamps as dates — the NEWEST source is the one with the LARGEST "read" value (later date wins; only compare the time when the dates are equal). Sources are listed newest-first, so the first entry is normally the most recent. Examples you must handle: overall portfolio status, what is at risk/blocked, what is overdue or slipping, who owns what, workload per lead, status by sponsor or phase, what is due/upcoming, recently delivered, % progress, and overall summaries. NEVER reply that you can only track limited things — if the answer is derivable from this data, compute and answer it; only if a specific detail is genuinely absent, say what IS known. FORMAT: keep answers short and scannable — lead with the answer, no preamble. Use short bullet lines starting with "• ", group sensibly, wrap project IDs and key numbers/dates in <b>…</b>, and separate lines with <br>. Default to brevity.';
   // Provenance goes to the AI too, so it can answer "where did STU-103's dates come from?"
   // and weigh the user's own caveats ("dates are provisional") when it reports numbers.
   const src = uploads.map(u => ({ file:u.name, kind:u.kind, project:u.project, read:u.when, gave:u.detail, description:u.note }));
@@ -3824,12 +3853,27 @@ async function handleSend(){
   if(!text && !pendingImages.length) return;   // an image on its own is enough
   input.value = "";
   addMsg("user", text || `📷 ${pendingImages.length} image${pendingImages.length>1?"s":""}`);
+
+  // Menu verbs ("export the tracker", "reset to sample data") are handled here,
+  // before spending an AI call on something entirely deterministic.
+  const intent = detectDataIntent(text);
+  if(intent && !pendingImages.length){
+    const note = runDataAction(intent);
+    if(note) addMsg("bot", note);
+    return;
+  }
   const thinking = addMsg("bot", '<span style="opacity:.55">thinking…</span>');
   try{
     const imgs = pendingImages.slice();
     pendingImages = []; try{ renderPendingImages(); }catch(e){}
     const res = await aiChat(text || "Read the attached image(s) and update the tracker with whatever they show.", imgs);
     const { summaries, unmatched, deleted } = applyAIResult(res);
+    // The AI can also ask for a data action, for phrasings the client-side
+    // matcher does not catch ("can you put this in a spreadsheet for me").
+    if(res.action){
+      const note = runDataAction(res.action);
+      if(note) addMsg("system", note);
+    }
     let reply = res.reply || "(done)";
     if(unmatched > 0 && summaries.length === 0)
       reply = (res.reply ? res.reply + '<br>' : '')
@@ -4311,6 +4355,12 @@ async function viewAsk(askId, ansId, presetText){
   try{
     const res = await aiChat(text);
     const { summaries, unmatched, deleted } = applyAIResult(res);
+    // The AI can also ask for a data action, for phrasings the client-side
+    // matcher does not catch ("can you put this in a spreadsheet for me").
+    if(res.action){
+      const note = runDataAction(res.action);
+      if(note) addMsg("system", note);
+    }
     let reply = res.reply || "(done)";
     if(unmatched > 0 && summaries.length === 0)
       reply = (res.reply ? res.reply + '<br>' : '')
@@ -4869,7 +4919,7 @@ if(!hasXLSX()){
   console.error("SheetJS (XLSX) not available — the inline bundle did not execute.");
 }
 
-addMsg("system", "Welcome. Use the tabs above (Tracker · Chat · Upload · Timeline · Digest · Edit · Review · Activity Log). Every tab has an AI box — type an update ('STU-103 is 90%'), a question ('what's overdue?'), or a cleanup ('delete STU-405'). <b>Review</b> scores the whole portfolio against a rubric. Your data is saved in this browser automatically — see <b>Data ▾</b> to export, import or reset it.");
+addMsg("system", "Welcome. Every tab has an AI box, and the chat bar sits at the bottom of all of them — type an update, ask a question, attach a file with 📎, or paste a screenshot. The AI also handles your data: try <b>\"export the tracker\"</b>, <b>\"upload a file\"</b> or <b>\"reset to sample data\"</b>.");
 renderTabs();  // start on Master Tracker tab
 
 // Load any previously saved workspace. Everything above this point is the sample seed.
