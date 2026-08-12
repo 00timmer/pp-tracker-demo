@@ -783,7 +783,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       <label title="Override the current date for planning and what-if views" style="color:var(--muted); font-size:11.5px;">Today:</label>
       <input id="demoDate" type="date" style="width:140px; padding:5px 8px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:6px; font:inherit;" />
       <button id="themeBtn" title="Switch between daylight and night" style="background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 9px; font:inherit; font-size:12px; cursor:pointer;">☀︎</button>
-      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v5.0</span>
+      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v5.1</span>
       <span class="pill" id="modePill">Simulated AI</span>
       <span id="savePill" title="Your data is saved in this browser" style="font-size:11.5px; color:var(--muted); white-space:nowrap;">💾 —</span>
       <input type="file" id="snapInput" accept=".json" style="display:none" />
@@ -3356,6 +3356,7 @@ let NVIDIA_MODEL = NVIDIA_MODELS[0];
 // Measured: nemotron-nano-12b-v2-vl 2s, llama-3.2-11b-vision 6s,
 // llama-3.2-90b-vision timed out, phi-3-vision 404.
 const NVIDIA_VISION_MODEL = "nvidia/nemotron-nano-12b-v2-vl";
+const NVIDIA_VISION_FALLBACK = "meta/llama-3.2-11b-vision-instruct";
 // Default proxy. Deliberately public: this is a static page, so anything it needs
 // at runtime is readable by anyone. The Worker holds the API key server-side and is
 // rate-limited, so the worst case is someone consuming quota, never a leaked key.
@@ -3452,9 +3453,18 @@ async function aiJSON(sys, prompt, opts){
           .concat([{ type:"text", text: prompt }])
       : prompt;
     const hasImages = !!(o.images && o.images.length);
-    const j = await nvidiaRaw({ model: hasImages ? NVIDIA_VISION_MODEL : NVIDIA_MODEL,
-      max_tokens: maxTokens, temperature: 0,
-      messages: [{ role:"system", content: sys }, { role:"user", content }] });
+    const msgs = [{ role:"system", content: sys }, { role:"user", content }];
+    let j;
+    try{
+      j = await nvidiaRaw({ model: hasImages ? NVIDIA_VISION_MODEL : NVIDIA_MODEL,
+        max_tokens: maxTokens, temperature: 0, messages: msgs });
+    }catch(err){
+      // NVIDIA's vision engine sometimes returns a 500 on an image it dislikes.
+      // One retry on the other vision model beats surfacing a stack trace.
+      if(!hasImages || !/50\d/.test(String(err && err.message || ""))) throw err;
+      j = await nvidiaRaw({ model: NVIDIA_VISION_FALLBACK, max_tokens: maxTokens,
+        temperature: 0, messages: msgs });
+    }
     return parseLooseJSON(nvidiaText(j), o.lenient);
   }
   const j = await geminiRaw({
@@ -4289,14 +4299,41 @@ function renderPendingImages(){
   });
 }
 
+// A screenshot straight off a Retina display can be several thousand pixels wide.
+// Sent at full size it crashed NVIDIA's vision engine ("EngineCore encountered an
+// issue"), so everything is scaled to fit MAX_IMG_EDGE first. Text in a screenshot
+// stays readable at this size, and it is dramatically faster to upload.
+const MAX_IMG_EDGE = 1600;
+function shrinkDataUrl(url, mime){
+  return new Promise(resolve => {
+    try{
+      const img = new Image();
+      img.onload = () => {
+        const big = Math.max(img.width, img.height);
+        if(big <= MAX_IMG_EDGE){ resolve({ url, mime }); return; }
+        const k = MAX_IMG_EDGE / big;
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        const ctx = c.getContext("2d");
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);   // JPEG has no alpha
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        resolve({ url: c.toDataURL("image/jpeg", 0.85), mime: "image/jpeg" });
+      };
+      img.onerror = () => resolve({ url, mime });     // unreadable — send as-is
+      img.src = url;
+    }catch(e){ resolve({ url, mime }); }
+  });
+}
+
 function addImageFile(file){
   return new Promise(resolve => {
     if(pendingImages.length >= MAX_IMAGES){ resolve("Only "+MAX_IMAGES+" images at a time."); return; }
     if(file.size > MAX_IMG_BYTES){ resolve(`"${file.name||"image"}" is ${(file.size/1048576).toFixed(1)} MB — the limit is 4.5 MB.`); return; }
     const r = new FileReader();
-    r.onload = () => {
-      const url = String(r.result);
-      pendingImages.push({ name: file.name || "pasted image", mime: file.type || "image/png",
+    r.onload = async () => {
+      const small = await shrinkDataUrl(String(r.result), file.type || "image/png");
+      const url = small.url;
+      pendingImages.push({ name: file.name || "pasted image", mime: small.mime,
                            b64: url.slice(url.indexOf(",")+1), url });
       renderPendingImages(); resolve(null);
     };
