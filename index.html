@@ -97,7 +97,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   header .right { display: flex; gap: 8px; align-items: center; }
 
   .key-row { display: flex; gap: 6px; align-items: center; font-size: 12px; }
-  .key-row input { width: 220px; padding: 5px 8px; background: var(--input); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+  .key-row input { width: 220px; padding: 5px 8px; background: var(--input); color: var(--text); border: 1px solid var(--border); border-radius: 12px; font: inherit; }
   .key-row .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--chipNeutral); color: var(--muted); }
   .key-row .pill.on { background: var(--chipOkBg); color: var(--chipOkFg); }
 
@@ -114,9 +114,9 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   /* The chat bar is the last child of <main> and must survive every viewport. */
   #globalAskBar { position: sticky; bottom: 0; z-index: 5; }
   .tabbar { display:flex; gap:4px; flex-wrap:wrap; align-items:center; }
-  .tabbar button { background:var(--panel2); color:var(--muted); border:1px solid var(--border); border-radius:8px 8px 0 0; padding:8px 14px; font:inherit; font-size:13px; cursor:pointer; }
+  .tabbar button { background:var(--panel2); color:var(--muted); border:1px solid var(--border); border-radius:16px 8px 0 0; padding:8px 14px; font:inherit; font-size:13px; cursor:pointer; }
   .tabbar button.active { background:var(--panel); color:var(--text); font-weight:700; }
-  .tabbar #splitBtn { border-radius:8px; font-size:12px; padding:6px 12px; margin-left:auto; }
+  .tabbar #splitBtn { border-radius:16px; font-size:12px; padding:6px 12px; margin-left:auto; }
   .content-row { display:flex; gap:10px; flex:1; min-height:0; }
   .content-row > .panel { display:none; }
   .content-row > .panel.show { display:flex; flex:1; min-width:0; }
@@ -189,12 +189,12 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .content-row > .panel.split { flex: 1 1 0; }
 
   .chat { padding: 12px 14px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px; }
-  .msg { padding: 8px 12px; border-radius: 8px; max-width: 92%; font-size: 13px; white-space: pre-wrap; }
+  .msg { padding: 8px 12px; border-radius: 16px; max-width: 92%; font-size: 13px; white-space: pre-wrap; }
   .msg.user { background: var(--userMsg); color: var(--text); align-self: flex-end; }
   .msg.bot { background: var(--panel); border: 1px solid var(--border); align-self: flex-start; }
   .msg.system { background: var(--input); border: 1px dashed var(--border); align-self: center; color: var(--muted); font-size: 11.5px; }
   .msg .label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
-  .msg.bot table { font-size: 12px; margin-top: 6px; background: var(--bg); border-radius: 6px; overflow: hidden; }
+  .msg.bot table { font-size: 12px; margin-top: 6px; background: var(--bg); border-radius: 12px; overflow: hidden; }
   .msg.bot table th, .msg.bot table td { padding: 4px 8px; border-bottom: 1px solid var(--chipNeutral); }
 
   .input-row { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); background: var(--panel2); }
@@ -203,38 +203,38 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     padding: 9px 12px;
     background: var(--input);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 12px;
     color: var(--text);
     font: inherit;
   }
   .input-row input:focus { outline: none; border-color: var(--accent); }
   .ask-bar { display:flex; gap:8px; padding:10px 0; }
-  .ask-bar input { flex:1; padding:9px 12px; background:var(--input); border:1px solid var(--border); border-radius:6px; color:var(--text); font:inherit; }
+  .ask-bar input { flex:1; padding:9px 12px; background:var(--input); border:1px solid var(--border); border-radius:12px; color:var(--text); font:inherit; }
   .ask-bar input:focus { outline:none; border-color:var(--accent); }
-  .ask-bar button { background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:8px 14px; cursor:pointer; font:inherit; font-weight:600; white-space:nowrap; }
+  .ask-bar button { background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:8px 14px; cursor:pointer; font:inherit; font-weight:600; white-space:nowrap; }
   .ask-bar button.primary { background:var(--accent); color:#fff; border:0; }
   .ask-bar button:hover { filter:brightness(1.1); }
-  .ask-ans { margin:0 0 12px; padding:12px 14px; background:var(--panel2); border:1px solid var(--border); border-radius:8px; font-size:13px; line-height:1.6; color:var(--text); }
+  .ask-ans { margin:0 0 12px; padding:12px 14px; background:var(--panel2); border:1px solid var(--border); border-radius:16px; font-size:13px; line-height:1.6; color:var(--text); }
   .edit-sec { margin-bottom:6px; }
   .edit-head { display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:14px; }
   .edit-head .hint { color:var(--muted); font-weight:400; font-size:12px; flex:1; }
-  .edit-head button, .edit-head select { background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font:inherit; font-size:12px; cursor:pointer; }
+  .edit-head button, .edit-head select { background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:6px 10px; font:inherit; font-size:12px; cursor:pointer; }
   .edit-head button.primary { background:var(--accent); color:#fff; border:0; font-weight:600; }
   table.egrid { width:100%; border-collapse:collapse; font-size:12px; }
   table.egrid th { text-align:left; color:var(--muted); font-weight:600; padding:4px 6px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--panel); }
   table.egrid td { padding:2px 4px; border-bottom:1px solid var(--chipNeutral); }
-  table.egrid input, table.egrid select { width:100%; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:5px; padding:5px 6px; font:inherit; font-size:12px; }
+  table.egrid input, table.egrid select { width:100%; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:5px 6px; font:inherit; font-size:12px; }
   table.egrid input:focus, table.egrid select:focus { outline:none; border-color:var(--accent); }
   table.egrid .del { background:transparent; border:0; color:var(--chipBadFg); cursor:pointer; font-size:14px; padding:2px 6px; }
   .tl-proj-head { display:flex; align-items:center; gap:10px; margin:14px 0 6px; font-weight:700; font-size:13px; }
-  .tl-proj-head button { background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 9px; font:inherit; font-size:11.5px; cursor:pointer; }
+  .tl-proj-head button { background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:4px 9px; font:inherit; font-size:11.5px; cursor:pointer; }
   .mode-toggle { display: flex; padding: 8px 12px; gap: 6px; border-bottom: 1px solid var(--border); background: var(--panel2); }
   .mode-toggle button {
     flex: 1;
     background: transparent;
     color: var(--muted);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 12px;
     padding: 6px 8px;
     cursor: pointer;
     font: inherit;
@@ -245,9 +245,9 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
      is globally display:none (it hid the retired mode row) and was suppressing this too. */
   .plan-toggle { display:flex; gap:6px; flex:0 0 auto; }
   .plan-toggle button { background:transparent; color:var(--muted); border:1px solid var(--border);
-    border-radius:6px; padding:8px 12px; cursor:pointer; font:inherit; font-weight:600; white-space:nowrap; }
+    border-radius:12px; padding:8px 12px; cursor:pointer; font:inherit; font-weight:600; white-space:nowrap; }
   .plan-toggle button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
-  button.primary { background: var(--accent); color: white; border: 0; border-radius: 6px; padding: 8px 16px; cursor: pointer; font: inherit; font-weight: 600; }
+  button.primary { background: var(--accent); color: white; border: 0; border-radius: 12px; padding: 8px 16px; cursor: pointer; font: inherit; font-weight: 600; }
   button.primary:hover { filter: brightness(1.1); }
 
   .log-list { padding: 6px 10px; overflow-y: auto; flex: 1; font-size: 12px; }
@@ -280,13 +280,13 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .dropzone .row { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
   .dropzone .row button {
     background: var(--input); border: 1px solid var(--border); color: var(--text);
-    padding: 6px 14px; border-radius: 6px; cursor: pointer; font: inherit; font-size: 12px;
+    padding: 6px 14px; border-radius: 12px; cursor: pointer; font: inherit; font-size: 12px;
   }
   .dropzone .row button:hover { border-color: var(--accent); }
 
   /* Timeline view */
   .tl-wrap { overflow: auto; flex: 1; padding: 10px 14px; }
-  .tl-proj { margin-bottom: 16px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--input); }
+  .tl-proj { margin-bottom: 16px; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; background: var(--input); }
   .tl-proj header {
     padding: 8px 12px; background: var(--panel2); display: flex; gap: 10px; align-items: center; justify-content: space-between;
     font-size: 12.5px;
@@ -328,7 +328,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     text-align: center; padding: 28px 14px; color: var(--muted); font-size: 12.5px;
   }
   .tl-empty button {
-    background: var(--accent); color: white; border: 0; border-radius: 6px;
+    background: var(--accent); color: white; border: 0; border-radius: 12px;
     padding: 6px 14px; cursor: pointer; font: inherit; margin-top: 8px;
   }
   .tl-legend { display: flex; gap: 10px; padding: 8px 14px; font-size: 11px; color: var(--muted); border-top: 1px solid var(--border); background: var(--panel2); }
@@ -340,13 +340,13 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .dg-controls { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
   .dg-controls button {
     background:var(--input); border:1px solid var(--border); color:var(--muted);
-    border-radius:6px; padding:6px 12px; cursor:pointer; font:inherit; font-size:12px;
+    border-radius:12px; padding:6px 12px; cursor:pointer; font:inherit; font-size:12px;
   }
   .dg-controls button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
   .dg-range { color:var(--muted); font-size:11.5px; margin-bottom:14px; }
   .dg-tiles { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-bottom:16px; }
   .dg-tile {
-    background:var(--input); border:1px solid var(--border); border-radius:8px;
+    background:var(--input); border:1px solid var(--border); border-radius:16px;
     padding:10px 12px;
   }
   .dg-tile .n { font-size:22pt; font-weight:700; line-height:1; }
@@ -356,7 +356,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .dg-tile.s .n { color:var(--chipBadFg); }
   .dg-tile.d .n { color:var(--chipWarnFg); }
   .dg-section {
-    margin-bottom:18px; border:1px solid var(--border); border-radius:8px; overflow:hidden;
+    margin-bottom:18px; border:1px solid var(--border); border-radius:16px; overflow:hidden;
   }
   .dg-section header {
     padding:8px 12px; background: var(--panel2);
@@ -429,7 +429,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   header .right { display: flex; gap: 8px; align-items: center; }
 
   .key-row { display: flex; gap: 6px; align-items: center; font-size: 12px; }
-  .key-row input { width: 220px; padding: 5px 8px; background: var(--input); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+  .key-row input { width: 220px; padding: 5px 8px; background: var(--input); color: var(--text); border: 1px solid var(--border); border-radius: 12px; font: inherit; }
   .key-row .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--chipNeutral); color: var(--muted); }
   .key-row .pill.on { background: var(--chipOkBg); color: var(--chipOkFg); }
 
@@ -442,9 +442,9 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     min-height: 0;
   }
   .tabbar { display:flex; gap:4px; flex-wrap:wrap; align-items:center; }
-  .tabbar button { background:var(--panel2); color:var(--muted); border:1px solid var(--border); border-radius:8px 8px 0 0; padding:8px 14px; font:inherit; font-size:13px; cursor:pointer; }
+  .tabbar button { background:var(--panel2); color:var(--muted); border:1px solid var(--border); border-radius:16px 8px 0 0; padding:8px 14px; font:inherit; font-size:13px; cursor:pointer; }
   .tabbar button.active { background:var(--panel); color:var(--text); font-weight:700; }
-  .tabbar #splitBtn { border-radius:8px; font-size:12px; padding:6px 12px; margin-left:auto; }
+  .tabbar #splitBtn { border-radius:16px; font-size:12px; padding:6px 12px; margin-left:auto; }
   .content-row { display:flex; gap:10px; flex:1; min-height:0; }
   .content-row > .panel { display:none; }
   .content-row > .panel.show { display:flex; flex:1; min-width:0; }
@@ -517,12 +517,12 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .content-row > .panel.split { flex: 1 1 0; }
 
   .chat { padding: 12px 14px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px; }
-  .msg { padding: 8px 12px; border-radius: 8px; max-width: 92%; font-size: 13px; white-space: pre-wrap; }
+  .msg { padding: 8px 12px; border-radius: 16px; max-width: 92%; font-size: 13px; white-space: pre-wrap; }
   .msg.user { background: var(--userMsg); align-self: flex-end; }
   .msg.bot { background: var(--panel); border: 1px solid var(--border); align-self: flex-start; }
   .msg.system { background: var(--input); border: 1px dashed var(--border); align-self: center; color: var(--muted); font-size: 11.5px; }
   .msg .label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
-  .msg.bot table { font-size: 12px; margin-top: 6px; background: var(--bg); border-radius: 6px; overflow: hidden; }
+  .msg.bot table { font-size: 12px; margin-top: 6px; background: var(--bg); border-radius: 12px; overflow: hidden; }
   .msg.bot table th, .msg.bot table td { padding: 4px 8px; border-bottom: 1px solid var(--chipNeutral); }
 
   .input-row { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); background: var(--panel2); }
@@ -531,38 +531,38 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     padding: 9px 12px;
     background: var(--input);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 12px;
     color: var(--text);
     font: inherit;
   }
   .input-row input:focus { outline: none; border-color: var(--accent); }
   .ask-bar { display:flex; gap:8px; padding:10px 0; }
-  .ask-bar input { flex:1; padding:9px 12px; background:var(--input); border:1px solid var(--border); border-radius:6px; color:var(--text); font:inherit; }
+  .ask-bar input { flex:1; padding:9px 12px; background:var(--input); border:1px solid var(--border); border-radius:12px; color:var(--text); font:inherit; }
   .ask-bar input:focus { outline:none; border-color:var(--accent); }
-  .ask-bar button { background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:8px 14px; cursor:pointer; font:inherit; font-weight:600; white-space:nowrap; }
+  .ask-bar button { background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:8px 14px; cursor:pointer; font:inherit; font-weight:600; white-space:nowrap; }
   .ask-bar button.primary { background:var(--accent); color:#fff; border:0; }
   .ask-bar button:hover { filter:brightness(1.1); }
-  .ask-ans { margin:0 0 12px; padding:12px 14px; background:var(--panel2); border:1px solid var(--border); border-radius:8px; font-size:13px; line-height:1.6; color:var(--text); }
+  .ask-ans { margin:0 0 12px; padding:12px 14px; background:var(--panel2); border:1px solid var(--border); border-radius:16px; font-size:13px; line-height:1.6; color:var(--text); }
   .edit-sec { margin-bottom:6px; }
   .edit-head { display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:14px; }
   .edit-head .hint { color:var(--muted); font-weight:400; font-size:12px; flex:1; }
-  .edit-head button, .edit-head select { background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font:inherit; font-size:12px; cursor:pointer; }
+  .edit-head button, .edit-head select { background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:6px 10px; font:inherit; font-size:12px; cursor:pointer; }
   .edit-head button.primary { background:var(--accent); color:#fff; border:0; font-weight:600; }
   table.egrid { width:100%; border-collapse:collapse; font-size:12px; }
   table.egrid th { text-align:left; color:var(--muted); font-weight:600; padding:4px 6px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--panel); }
   table.egrid td { padding:2px 4px; border-bottom:1px solid var(--chipNeutral); }
-  table.egrid input, table.egrid select { width:100%; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:5px; padding:5px 6px; font:inherit; font-size:12px; }
+  table.egrid input, table.egrid select { width:100%; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:5px 6px; font:inherit; font-size:12px; }
   table.egrid input:focus, table.egrid select:focus { outline:none; border-color:var(--accent); }
   table.egrid .del { background:transparent; border:0; color:var(--chipBadFg); cursor:pointer; font-size:14px; padding:2px 6px; }
   .tl-proj-head { display:flex; align-items:center; gap:10px; margin:14px 0 6px; font-weight:700; font-size:13px; }
-  .tl-proj-head button { background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 9px; font:inherit; font-size:11.5px; cursor:pointer; }
+  .tl-proj-head button { background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:12px; padding:4px 9px; font:inherit; font-size:11.5px; cursor:pointer; }
   .mode-toggle { display: flex; padding: 8px 12px; gap: 6px; border-bottom: 1px solid var(--border); background: var(--panel2); }
   .mode-toggle button {
     flex: 1;
     background: transparent;
     color: var(--muted);
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 12px;
     padding: 6px 8px;
     cursor: pointer;
     font: inherit;
@@ -573,9 +573,9 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
      is globally display:none (it hid the retired mode row) and was suppressing this too. */
   .plan-toggle { display:flex; gap:6px; flex:0 0 auto; }
   .plan-toggle button { background:transparent; color:var(--muted); border:1px solid var(--border);
-    border-radius:6px; padding:8px 12px; cursor:pointer; font:inherit; font-weight:600; white-space:nowrap; }
+    border-radius:12px; padding:8px 12px; cursor:pointer; font:inherit; font-weight:600; white-space:nowrap; }
   .plan-toggle button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
-  button.primary { background: var(--accent); color: white; border: 0; border-radius: 6px; padding: 8px 16px; cursor: pointer; font: inherit; font-weight: 600; }
+  button.primary { background: var(--accent); color: white; border: 0; border-radius: 12px; padding: 8px 16px; cursor: pointer; font: inherit; font-weight: 600; }
   button.primary:hover { filter: brightness(1.1); }
 
   .log-list { padding: 6px 10px; overflow-y: auto; flex: 1; font-size: 12px; }
@@ -608,13 +608,13 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .dropzone .row { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
   .dropzone .row button {
     background: var(--input); border: 1px solid var(--border); color: var(--text);
-    padding: 6px 14px; border-radius: 6px; cursor: pointer; font: inherit; font-size: 12px;
+    padding: 6px 14px; border-radius: 12px; cursor: pointer; font: inherit; font-size: 12px;
   }
   .dropzone .row button:hover { border-color: var(--accent); }
 
   /* Timeline view */
   .tl-wrap { overflow: auto; flex: 1; padding: 10px 14px; }
-  .tl-proj { margin-bottom: 16px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--input); }
+  .tl-proj { margin-bottom: 16px; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; background: var(--input); }
   .tl-proj header {
     padding: 8px 12px; background: var(--panel2); display: flex; gap: 10px; align-items: center; justify-content: space-between;
     font-size: 12.5px;
@@ -656,7 +656,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     text-align: center; padding: 28px 14px; color: var(--muted); font-size: 12.5px;
   }
   .tl-empty button {
-    background: var(--accent); color: white; border: 0; border-radius: 6px;
+    background: var(--accent); color: white; border: 0; border-radius: 12px;
     padding: 6px 14px; cursor: pointer; font: inherit; margin-top: 8px;
   }
   .tl-legend { display: flex; gap: 10px; padding: 8px 14px; font-size: 11px; color: var(--muted); border-top: 1px solid var(--border); background: var(--panel2); }
@@ -668,13 +668,13 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .dg-controls { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
   .dg-controls button {
     background:var(--input); border:1px solid var(--border); color:var(--muted);
-    border-radius:6px; padding:6px 12px; cursor:pointer; font:inherit; font-size:12px;
+    border-radius:12px; padding:6px 12px; cursor:pointer; font:inherit; font-size:12px;
   }
   .dg-controls button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
   .dg-range { color:var(--muted); font-size:11.5px; margin-bottom:14px; }
   .dg-tiles { display:grid; grid-template-columns: repeat(4, 1fr); gap:10px; margin-bottom:16px; }
   .dg-tile {
-    background:var(--input); border:1px solid var(--border); border-radius:8px;
+    background:var(--input); border:1px solid var(--border); border-radius:16px;
     padding:10px 12px;
   }
   .dg-tile .n { font-size:22pt; font-weight:700; line-height:1; }
@@ -684,7 +684,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .dg-tile.s .n { color:var(--chipBadFg); }
   .dg-tile.d .n { color:var(--chipWarnFg); }
   .dg-section {
-    margin-bottom:18px; border:1px solid var(--border); border-radius:8px; overflow:hidden;
+    margin-bottom:18px; border:1px solid var(--border); border-radius:16px; overflow:hidden;
   }
   .dg-section header {
     padding:8px 12px; background: var(--panel2);
@@ -736,12 +736,12 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
 
   /* Study view */
   .st-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:10px; }
-  .st-card { background:var(--panel2); border:1px solid var(--border); border-radius:8px; padding:10px 12px; }
+  .st-card { background:var(--panel2); border:1px solid var(--border); border-radius:16px; padding:10px 12px; }
   .st-card h4 { margin:0 0 8px; font-size:12px; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); font-weight:700; }
   .st-row { display:flex; justify-content:space-between; gap:10px; padding:3px 0; font-size:12.5px; align-items:center; flex-wrap:wrap; }
   .st-row > span:first-child { color:var(--muted); white-space:nowrap; }
   .st-row input, .st-row select, .st-note textarea {
-    background:var(--input); border:1px solid var(--border); color:var(--text); border-radius:5px;
+    background:var(--input); border:1px solid var(--border); color:var(--text); border-radius:12px;
     padding:3px 6px; font:inherit; font-size:12px; max-width:150px; text-align:right; }
   .st-note textarea { max-width:none; width:100%; text-align:left; min-height:52px; resize:vertical; }
   .st-row input:focus, .st-row select:focus, .st-note textarea:focus { outline:none; border-color:var(--accent); }
@@ -756,17 +756,17 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   #trackerBody tr { cursor:pointer; }
 
   /* Notes */
-  #noteEditor { min-height:52vh; background:var(--panel); border:1px solid var(--border); border-radius:8px;
+  #noteEditor { min-height:52vh; background:var(--panel); border:1px solid var(--border); border-radius:16px;
     padding:14px 16px; color:var(--text); font-size:14.5px; line-height:1.6; outline:none; }
   #noteEditor:focus { border-color:var(--accent); }
   #noteEditor h3 { margin:.8em 0 .3em; font-size:16px; }
   #noteEditor ul, #noteEditor ol { padding-left:22px; margin:.4em 0; }
   #noteEditor:empty:before { content:attr(data-ph); color:var(--muted); }
   #noteTools button { background:var(--panel2); color:var(--text); border:1px solid var(--border);
-    border-radius:5px; padding:3px 9px; font:inherit; font-size:12px; cursor:pointer; }
+    border-radius:12px; padding:3px 9px; font:inherit; font-size:12px; cursor:pointer; }
   #noteTools button:hover { border-color:var(--accent); }
   .g-img { position:relative; display:inline-flex; }
-  .g-img img { height:54px; width:auto; border:1px solid var(--border); border-radius:6px; display:block; }
+  .g-img img { height:54px; width:auto; border:1px solid var(--border); border-radius:12px; display:block; }
   .g-img button { position:absolute; top:-6px; right:-6px; width:18px; height:18px; line-height:1;
     border-radius:50%; border:1px solid var(--border); background:var(--panel); color:var(--text);
     font-size:11px; cursor:pointer; padding:0; }
