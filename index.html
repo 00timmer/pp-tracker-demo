@@ -783,7 +783,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       <label title="Override the current date for planning and what-if views" style="color:var(--muted); font-size:11.5px;">Today:</label>
       <input id="demoDate" type="date" style="width:140px; padding:5px 8px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:6px; font:inherit;" />
       <button id="themeBtn" title="Switch between daylight and night" style="background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 9px; font:inherit; font-size:12px; cursor:pointer;">☀︎</button>
-      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v5.1</span>
+      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v5.2</span>
       <span class="pill" id="modePill">Simulated AI</span>
       <span id="savePill" title="Your data is saved in this browser" style="font-size:11.5px; color:var(--muted); white-space:nowrap;">💾 —</span>
       <input type="file" id="snapInput" accept=".json" style="display:none" />
@@ -3997,6 +3997,7 @@ function detectIntent(text){
 async function handleSend(){
   const input = document.getElementById("userInput");
   const text = input.value.trim();
+  try{ await imageWork; }catch(e){}            // let a pasted image finish attaching
   if(!text && !pendingImages.length) return;   // an image on its own is enough
   input.value = "";
   addMsg("user", text || `📷 ${pendingImages.length} image${pendingImages.length>1?"s":""}`);
@@ -4304,6 +4305,12 @@ function renderPendingImages(){
 // issue"), so everything is scaled to fit MAX_IMG_EDGE first. Text in a screenshot
 // stays readable at this size, and it is dramatically faster to upload.
 const MAX_IMG_EDGE = 1600;
+// Reading and shrinking an image is asynchronous and takes a moment on a large
+// screenshot. Paste-then-send fast enough and the send used to fire first, so the
+// request went out with no image and the AI correctly said it saw none. Sending
+// now waits on this.
+let imageWork = Promise.resolve();
+function trackImageWork(p){ imageWork = Promise.resolve(imageWork).then(() => p).catch(() => {}); return p; }
 function shrinkDataUrl(url, mime){
   return new Promise(resolve => {
     try{
@@ -4350,7 +4357,7 @@ async function handleImagePaste(e){
   }
   if(!files.length) return;                 // plain text paste — leave it alone
   e.preventDefault();
-  const errs = (await Promise.all(files.map(addImageFile))).filter(Boolean);
+  const errs = (await trackImageWork(Promise.all(files.map(addImageFile)))).filter(Boolean);
   const ans = document.getElementById("gAns");
   if(errs.length){ ans.style.display="block"; ans.innerHTML = "⚠️ " + errs.join("<br>"); }
   else if(pendingImages.length){
@@ -4371,6 +4378,7 @@ async function globalAsk(){
   const clr = document.getElementById("gAskClear");
   const btn = document.getElementById("gAskBtn");
   const text = box.value.trim();
+  try{ await imageWork; }catch(e){}            // let a pasted image finish attaching
   if(!text && !pendingImages.length) return;   // an attached image on its own is enough
 
   box.value = "";
@@ -4458,7 +4466,7 @@ document.getElementById("gAttachInput").onchange = async e => {
   const imgs = fs.filter(f => /^image\//.test(f.type));
   const rest = fs.filter(f => !/^image\//.test(f.type));
   if(imgs.length){
-    const errs = (await Promise.all(imgs.map(addImageFile))).filter(Boolean);
+    const errs = (await trackImageWork(Promise.all(imgs.map(addImageFile)))).filter(Boolean);
     const ans = document.getElementById("gAns");
     ans.style.display = "block";
     ans.innerHTML = errs.length ? "⚠️ " + errs.join("<br>")
