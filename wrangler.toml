@@ -1,0 +1,6 @@
+name = "pp-tracker-nvidia"
+main = "worker.js"
+compatibility_date = "2026-08-11"
+
+# The API key is NOT set here — it is a secret, kept out of the repo:
+#   wrangler secret put NVIDIA_KEY

@@ -57,10 +57,6 @@ Once the proxy is set, a model picker appears next to the key box. Available mod
 - `minimaxai/minimax-m3`
 - `meta/llama-3.1-70b-instruct`
 
-There is no provider dropdown. The prefix identifies the key: `AIza…` is Gemini,
-and `sk-ant-…` is Claude.
-
-
 Both are called directly from the browser; there is no proxy and no server, so no key ever reaches
 a third party.
 
