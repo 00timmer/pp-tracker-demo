@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>PP Tracker AI — Demo</title>
+<title>PP Tracker</title>
 <!-- SheetJS bundled INLINE so the demo is truly one file: no sibling .js to lose when the
      HTML is emailed, copied, or opened from another folder. Offline-safe (no CDN). -->
 <script>
@@ -37,7 +37,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     --panel: #ffffff;
     --panel2: #f8fafc;
     --input: #ffffff;
-    --border: #cbd5e1;
+    --border: var(--chipNeutralFg);
     --text: #0f172a;
     --muted: #64748b;
     --accent: #4f46e5;
@@ -45,6 +45,14 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     --ok: #15803d;
     --warn: #b45309;
     --bad: #dc2626;
+    --headerFrom: #e0e7ff;
+    --chipNeutral: #e2e8f0;   --chipNeutralFg: #334155;
+    --chipOkBg: #dcfce7;      --chipOkFg: #14532d;
+    --chipWarnBg: #fef3c7;    --chipWarnFg: #78350f;
+    --chipBadBg: #fee2e2;     --chipBadFg: #7f1d1d;
+    --chipInfoBg: #dbeafe;    --chipInfoFg: #1e3a8a;
+    --userMsg: #e0e7ff;
+    --barUpcoming: #94a3b8;
   }
   :root[data-theme="dark"] {
     --bg: #0f172a;
@@ -59,6 +67,14 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     --ok: #22c55e;
     --warn: #f59e0b;
     --bad: #ef4444;
+    --headerFrom: #1e1b4b;
+    --chipNeutral: #1f2937;   --chipNeutralFg: #cbd5e1;
+    --chipOkBg: #052e16;      --chipOkFg: #86efac;
+    --chipWarnBg: #422006;    --chipWarnFg: #fcd34d;
+    --chipBadBg: #450a0a;     --chipBadFg: #fca5a5;
+    --chipInfoBg: #1e3a8a;    --chipInfoFg: #bfdbfe;
+    --userMsg: #312e81;
+    --barUpcoming: #475569;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
@@ -69,7 +85,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   }
   header {
     padding: 14px 22px;
-    background: linear-gradient(90deg, #1e1b4b 0%, var(--bg) 70%);
+    background: linear-gradient(90deg, var(--headerFrom) 0%, var(--bg) 70%);
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
@@ -83,15 +99,20 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .key-row { display: flex; gap: 6px; align-items: center; font-size: 12px; }
   .key-row input { width: 220px; padding: 5px 8px; background: var(--input); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font: inherit; }
   .key-row .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #334155; color: var(--muted); }
-  .key-row .pill.on { background: #14532d; color: #bbf7d0; }
+  .key-row .pill.on { background: var(--chipOkBg); color: var(--chipOkFg); }
 
+  html, body { height: 100%; }
+  body { display: flex; flex-direction: column; min-height: 100dvh; }
   main {
     display: flex;
     flex-direction: column;
     gap: 8px;
     padding: 12px 14px;
-    height: calc(100vh - 58px);
+    flex: 1 1 auto;      /* take whatever the header leaves — no hardcoded header height */
+    min-height: 0;       /* let the scrolling child shrink instead of overflowing */
   }
+  /* The chat bar is the last child of <main> and must survive every viewport. */
+  #globalAskBar { position: sticky; bottom: 0; z-index: 5; }
   .tabbar { display:flex; gap:4px; flex-wrap:wrap; align-items:center; }
   .tabbar button { background:var(--panel2); color:var(--muted); border:1px solid var(--border); border-radius:8px 8px 0 0; padding:8px 14px; font:inherit; font-size:13px; cursor:pointer; }
   .tabbar button.active { background:var(--panel); color:var(--text); font-weight:700; }
@@ -136,7 +157,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   }
   tbody td {
     padding: 8px 10px;
-    border-bottom: 1px solid #1f2937;
+    border-bottom: 1px solid var(--chipNeutral);
     vertical-align: top;
   }
   tbody tr.flash {
@@ -156,25 +177,25 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     font-weight: 600;
     letter-spacing: 0.2px;
   }
-  .status.ontrack { background: #052e16; color: #86efac; }
-  .status.atrisk { background: #422006; color: #fcd34d; }
-  .status.blocked { background: #450a0a; color: #fca5a5; }
-  .status.complete { background: #1e3a8a; color: #bfdbfe; }
-  .status.notstarted { background: #1f2937; color: #cbd5e1; }
+  .status.ontrack { background: var(--chipOkBg); color: var(--chipOkFg); }
+  .status.atrisk { background: var(--chipWarnBg); color: var(--chipWarnFg); }
+  .status.blocked { background: var(--chipBadBg); color: var(--chipBadFg); }
+  .status.complete { background: var(--chipInfoBg); color: var(--chipInfoFg); }
+  .status.notstarted { background: var(--chipNeutral); color: var(--chipNeutralFg); }
 
-  .pct-bar { background: #1f2937; height: 6px; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+  .pct-bar { background: var(--chipNeutral); height: 6px; border-radius: 4px; overflow: hidden; margin-top: 4px; }
   .pct-bar > div { background: linear-gradient(90deg, var(--accent), var(--accent2)); height: 100%; }
 
   .content-row > .panel.split { flex: 1 1 0; }
 
   .chat { padding: 12px 14px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px; }
   .msg { padding: 8px 12px; border-radius: 8px; max-width: 92%; font-size: 13px; white-space: pre-wrap; }
-  .msg.user { background: #312e81; align-self: flex-end; }
+  .msg.user { background: var(--userMsg); color: var(--text); align-self: flex-end; }
   .msg.bot { background: var(--panel); border: 1px solid var(--border); align-self: flex-start; }
   .msg.system { background: var(--input); border: 1px dashed var(--border); align-self: center; color: var(--muted); font-size: 11.5px; }
   .msg .label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
   .msg.bot table { font-size: 12px; margin-top: 6px; background: var(--bg); border-radius: 6px; overflow: hidden; }
-  .msg.bot table th, .msg.bot table td { padding: 4px 8px; border-bottom: 1px solid #1f2937; }
+  .msg.bot table th, .msg.bot table td { padding: 4px 8px; border-bottom: 1px solid var(--chipNeutral); }
 
   .input-row { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); background: var(--panel2); }
   .input-row input {
@@ -201,10 +222,10 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .edit-head button.primary { background:var(--accent); color:#fff; border:0; font-weight:600; }
   table.egrid { width:100%; border-collapse:collapse; font-size:12px; }
   table.egrid th { text-align:left; color:var(--muted); font-weight:600; padding:4px 6px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--panel); }
-  table.egrid td { padding:2px 4px; border-bottom:1px solid #1f2937; }
+  table.egrid td { padding:2px 4px; border-bottom:1px solid var(--chipNeutral); }
   table.egrid input, table.egrid select { width:100%; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:5px; padding:5px 6px; font:inherit; font-size:12px; }
   table.egrid input:focus, table.egrid select:focus { outline:none; border-color:var(--accent); }
-  table.egrid .del { background:transparent; border:0; color:#fca5a5; cursor:pointer; font-size:14px; padding:2px 6px; }
+  table.egrid .del { background:transparent; border:0; color:var(--chipBadFg); cursor:pointer; font-size:14px; padding:2px 6px; }
   .tl-proj-head { display:flex; align-items:center; gap:10px; margin:14px 0 6px; font-weight:700; font-size:13px; }
   .tl-proj-head button { background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 9px; font:inherit; font-size:11.5px; cursor:pointer; }
   .mode-toggle { display: flex; padding: 8px 12px; gap: 6px; border-bottom: 1px solid var(--border); background: var(--panel2); }
@@ -230,7 +251,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   button.primary:hover { filter: brightness(1.1); }
 
   .log-list { padding: 6px 10px; overflow-y: auto; flex: 1; font-size: 12px; }
-  .log-list .entry { padding: 8px 10px; border-bottom: 1px solid #1f2937; display: grid; grid-template-columns: 60px 1fr; gap: 10px; }
+  .log-list .entry { padding: 8px 10px; border-bottom: 1px solid var(--chipNeutral); display: grid; grid-template-columns: 60px 1fr; gap: 10px; }
   .log-list .entry .when { color: var(--muted); font-variant-numeric: tabular-nums; }
   .log-list .entry .body { }
   .log-list .entry .what { color: var(--accent2); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
@@ -272,21 +293,21 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   }
   .tl-proj header .stats { display: flex; gap: 6px; color: var(--muted); font-size: 11.5px; }
   .tl-proj header .stats span { padding: 2px 8px; border-radius: 999px; }
-  .tl-proj header .stats .s-c { background: #052e16; color: #86efac; }
-  .tl-proj header .stats .s-p { background: #0c2d6b; color: #93c5fd; }
-  .tl-proj header .stats .s-s { background: #450a0a; color: #fca5a5; }
-  .tl-proj header .stats .s-u { background: #1f2937; color: #cbd5e1; }
+  .tl-proj header .stats .s-c { background: var(--chipOkBg); color: var(--chipOkFg); }
+  .tl-proj header .stats .s-p { background: var(--chipInfoBg); color: var(--chipInfoFg); }
+  .tl-proj header .stats .s-s { background: var(--chipBadBg); color: var(--chipBadFg); }
+  .tl-proj header .stats .s-u { background: var(--chipNeutral); color: var(--chipNeutralFg); }
   .tl-grid {
     display: grid; grid-template-columns: 280px 1fr; font-size: 11.5px;
   }
-  .tl-grid .head { color: var(--muted); padding: 4px 12px; background: var(--bg); border-bottom: 1px solid #1f2937; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .tl-grid .head { color: var(--muted); padding: 4px 12px; background: var(--bg); border-bottom: 1px solid var(--chipNeutral); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.4px; }
   .tl-row { display: contents; }
   .tl-row .name {
-    padding: 5px 12px; border-bottom: 1px solid #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    padding: 5px 12px; border-bottom: 1px solid var(--chipNeutral); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .tl-row .name.summary { font-weight: 700; background: var(--panel); }
   .tl-row .bar-cell {
-    position: relative; border-bottom: 1px solid #1f2937; background: var(--bg);
+    position: relative; border-bottom: 1px solid var(--chipNeutral); background: var(--bg);
     height: 22px;
   }
   .tl-bar {
@@ -295,7 +316,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .tl-bar.c { background: #16a34a; }
   .tl-bar.p { background: linear-gradient(90deg, #2563eb, #60a5fa); }
   .tl-bar.s { background: #dc2626; }
-  .tl-bar.u { background: #475569; }
+  .tl-bar.u { background: var(--barUpcoming); }
   .tl-bar .pct { position: absolute; top: 0; left: 0; height: 100%; background: rgba(0,0,0,0.25); border-right: 1px dashed rgba(255,255,255,0.5); }
   .tl-today {
     position: absolute; top: 0; bottom: 0; width: 1px; background: #f59e0b; z-index: 2;
@@ -330,10 +351,10 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   }
   .dg-tile .n { font-size:22pt; font-weight:700; line-height:1; }
   .dg-tile .l { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.4px; margin-top:4px; }
-  .dg-tile.c .n { color:#86efac; }
-  .dg-tile.p .n { color:#93c5fd; }
-  .dg-tile.s .n { color:#fca5a5; }
-  .dg-tile.d .n { color:#fcd34d; }
+  .dg-tile.c .n { color:var(--chipOkFg); }
+  .dg-tile.p .n { color:var(--chipInfoFg); }
+  .dg-tile.s .n { color:var(--chipBadFg); }
+  .dg-tile.d .n { color:var(--chipWarnFg); }
   .dg-section {
     margin-bottom:18px; border:1px solid var(--border); border-radius:8px; overflow:hidden;
   }
@@ -348,7 +369,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .dg-section header.d { border-left: 3px solid #f59e0b; }
   .dg-section table { width:100%; border-collapse:collapse; font-size:12px; }
   .dg-section th { text-align:left; padding:6px 12px; background:var(--bg); color:var(--muted); font-size:10.5px; text-transform:uppercase; letter-spacing:0.4px; }
-  .dg-section td { padding:6px 12px; border-bottom:1px solid #1f2937; }
+  .dg-section td { padding:6px 12px; border-bottom:1px solid var(--chipNeutral); }
   .dg-section tr:last-child td { border-bottom:none; }
   .dg-empty { padding:14px 12px; color:var(--muted); font-style:italic; font-size:12px; }
   /* ── Phone layout (also what the Android APK gets) ──────────────
@@ -360,7 +381,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   @media (max-width: 820px) {
     header { padding: 8px 12px; gap: 8px; flex-wrap: wrap; align-items: flex-start; }
     header h1 { font-size: 15px; white-space: nowrap; }
-    header h1 span { display: none; }        /* drop "— Capstone Demo" */
+    header h1 span { display: none; }        /* drop the subtitle on narrow screens */
     header .sub { display: none; }           /* drop the tagline */
     header .right { width: 100%; }
     .key-row { flex-wrap: wrap; gap: 6px 8px; width: 100%; }
@@ -375,6 +396,10 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     /* Without this the input eats the row: the lens toggle collapsed to 0px and
        the AI Summary button hung 20px past the right edge. */
     .ask-bar { flex-wrap: wrap; }
+    #globalAskBar { padding: 6px 8px; }
+    #globalAskBar input { flex: 1 1 100%; min-width: 0; }
+    #globalAskBar button { flex: 0 0 auto; }
+    #gAns { max-height: 26vh !important; }
     .ask-bar input { flex: 1 1 100%; min-width: 0; }
     .ask-bar button, .plan-toggle { flex: 0 0 auto; }
 
@@ -392,7 +417,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   }
   header {
     padding: 14px 22px;
-    background: linear-gradient(90deg, #1e1b4b 0%, #0f172a 70%);
+    background: linear-gradient(90deg, var(--headerFrom) 0%, #0f172a 70%);
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
@@ -406,14 +431,15 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .key-row { display: flex; gap: 6px; align-items: center; font-size: 12px; }
   .key-row input { width: 220px; padding: 5px 8px; background: var(--input); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font: inherit; }
   .key-row .pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #334155; color: var(--muted); }
-  .key-row .pill.on { background: #14532d; color: #bbf7d0; }
+  .key-row .pill.on { background: var(--chipOkBg); color: var(--chipOkFg); }
 
   main {
     display: flex;
     flex-direction: column;
     gap: 8px;
     padding: 12px 14px;
-    height: calc(100vh - 58px);
+    flex: 1 1 auto;      /* take whatever the header leaves */
+    min-height: 0;
   }
   .tabbar { display:flex; gap:4px; flex-wrap:wrap; align-items:center; }
   .tabbar button { background:var(--panel2); color:var(--muted); border:1px solid var(--border); border-radius:8px 8px 0 0; padding:8px 14px; font:inherit; font-size:13px; cursor:pointer; }
@@ -459,7 +485,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   }
   tbody td {
     padding: 8px 10px;
-    border-bottom: 1px solid #1f2937;
+    border-bottom: 1px solid var(--chipNeutral);
     vertical-align: top;
   }
   tbody tr.flash {
@@ -479,25 +505,25 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     font-weight: 600;
     letter-spacing: 0.2px;
   }
-  .status.ontrack { background: #052e16; color: #86efac; }
-  .status.atrisk { background: #422006; color: #fcd34d; }
-  .status.blocked { background: #450a0a; color: #fca5a5; }
-  .status.complete { background: #1e3a8a; color: #bfdbfe; }
-  .status.notstarted { background: #1f2937; color: #cbd5e1; }
+  .status.ontrack { background: var(--chipOkBg); color: var(--chipOkFg); }
+  .status.atrisk { background: var(--chipWarnBg); color: var(--chipWarnFg); }
+  .status.blocked { background: var(--chipBadBg); color: var(--chipBadFg); }
+  .status.complete { background: var(--chipInfoBg); color: var(--chipInfoFg); }
+  .status.notstarted { background: var(--chipNeutral); color: var(--chipNeutralFg); }
 
-  .pct-bar { background: #1f2937; height: 6px; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+  .pct-bar { background: var(--chipNeutral); height: 6px; border-radius: 4px; overflow: hidden; margin-top: 4px; }
   .pct-bar > div { background: linear-gradient(90deg, var(--accent), var(--accent2)); height: 100%; }
 
   .content-row > .panel.split { flex: 1 1 0; }
 
   .chat { padding: 12px 14px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px; }
   .msg { padding: 8px 12px; border-radius: 8px; max-width: 92%; font-size: 13px; white-space: pre-wrap; }
-  .msg.user { background: #312e81; align-self: flex-end; }
+  .msg.user { background: var(--userMsg); align-self: flex-end; }
   .msg.bot { background: #1e293b; border: 1px solid var(--border); align-self: flex-start; }
   .msg.system { background: var(--input); border: 1px dashed var(--border); align-self: center; color: var(--muted); font-size: 11.5px; }
   .msg .label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
   .msg.bot table { font-size: 12px; margin-top: 6px; background: #0f172a; border-radius: 6px; overflow: hidden; }
-  .msg.bot table th, .msg.bot table td { padding: 4px 8px; border-bottom: 1px solid #1f2937; }
+  .msg.bot table th, .msg.bot table td { padding: 4px 8px; border-bottom: 1px solid var(--chipNeutral); }
 
   .input-row { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); background: var(--panel2); }
   .input-row input {
@@ -524,10 +550,10 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .edit-head button.primary { background:var(--accent); color:#fff; border:0; font-weight:600; }
   table.egrid { width:100%; border-collapse:collapse; font-size:12px; }
   table.egrid th { text-align:left; color:var(--muted); font-weight:600; padding:4px 6px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--panel); }
-  table.egrid td { padding:2px 4px; border-bottom:1px solid #1f2937; }
+  table.egrid td { padding:2px 4px; border-bottom:1px solid var(--chipNeutral); }
   table.egrid input, table.egrid select { width:100%; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:5px; padding:5px 6px; font:inherit; font-size:12px; }
   table.egrid input:focus, table.egrid select:focus { outline:none; border-color:var(--accent); }
-  table.egrid .del { background:transparent; border:0; color:#fca5a5; cursor:pointer; font-size:14px; padding:2px 6px; }
+  table.egrid .del { background:transparent; border:0; color:var(--chipBadFg); cursor:pointer; font-size:14px; padding:2px 6px; }
   .tl-proj-head { display:flex; align-items:center; gap:10px; margin:14px 0 6px; font-weight:700; font-size:13px; }
   .tl-proj-head button { background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 9px; font:inherit; font-size:11.5px; cursor:pointer; }
   .mode-toggle { display: flex; padding: 8px 12px; gap: 6px; border-bottom: 1px solid var(--border); background: var(--panel2); }
@@ -553,7 +579,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   button.primary:hover { filter: brightness(1.1); }
 
   .log-list { padding: 6px 10px; overflow-y: auto; flex: 1; font-size: 12px; }
-  .log-list .entry { padding: 8px 10px; border-bottom: 1px solid #1f2937; display: grid; grid-template-columns: 60px 1fr; gap: 10px; }
+  .log-list .entry { padding: 8px 10px; border-bottom: 1px solid var(--chipNeutral); display: grid; grid-template-columns: 60px 1fr; gap: 10px; }
   .log-list .entry .when { color: var(--muted); font-variant-numeric: tabular-nums; }
   .log-list .entry .body { }
   .log-list .entry .what { color: var(--accent2); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
@@ -595,21 +621,21 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   }
   .tl-proj header .stats { display: flex; gap: 6px; color: var(--muted); font-size: 11.5px; }
   .tl-proj header .stats span { padding: 2px 8px; border-radius: 999px; }
-  .tl-proj header .stats .s-c { background: #052e16; color: #86efac; }
-  .tl-proj header .stats .s-p { background: #0c2d6b; color: #93c5fd; }
-  .tl-proj header .stats .s-s { background: #450a0a; color: #fca5a5; }
-  .tl-proj header .stats .s-u { background: #1f2937; color: #cbd5e1; }
+  .tl-proj header .stats .s-c { background: var(--chipOkBg); color: var(--chipOkFg); }
+  .tl-proj header .stats .s-p { background: var(--chipInfoBg); color: var(--chipInfoFg); }
+  .tl-proj header .stats .s-s { background: var(--chipBadBg); color: var(--chipBadFg); }
+  .tl-proj header .stats .s-u { background: var(--chipNeutral); color: var(--chipNeutralFg); }
   .tl-grid {
     display: grid; grid-template-columns: 280px 1fr; font-size: 11.5px;
   }
-  .tl-grid .head { color: var(--muted); padding: 4px 12px; background: #0f172a; border-bottom: 1px solid #1f2937; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .tl-grid .head { color: var(--muted); padding: 4px 12px; background: #0f172a; border-bottom: 1px solid var(--chipNeutral); font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.4px; }
   .tl-row { display: contents; }
   .tl-row .name {
-    padding: 5px 12px; border-bottom: 1px solid #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    padding: 5px 12px; border-bottom: 1px solid var(--chipNeutral); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .tl-row .name.summary { font-weight: 700; background: #1e293b; }
   .tl-row .bar-cell {
-    position: relative; border-bottom: 1px solid #1f2937; background: #0f172a;
+    position: relative; border-bottom: 1px solid var(--chipNeutral); background: #0f172a;
     height: 22px;
   }
   .tl-bar {
@@ -618,7 +644,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .tl-bar.c { background: #16a34a; }
   .tl-bar.p { background: linear-gradient(90deg, #2563eb, #60a5fa); }
   .tl-bar.s { background: #dc2626; }
-  .tl-bar.u { background: #475569; }
+  .tl-bar.u { background: var(--barUpcoming); }
   .tl-bar .pct { position: absolute; top: 0; left: 0; height: 100%; background: rgba(0,0,0,0.25); border-right: 1px dashed rgba(255,255,255,0.5); }
   .tl-today {
     position: absolute; top: 0; bottom: 0; width: 1px; background: #f59e0b; z-index: 2;
@@ -653,10 +679,10 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   }
   .dg-tile .n { font-size:22pt; font-weight:700; line-height:1; }
   .dg-tile .l { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.4px; margin-top:4px; }
-  .dg-tile.c .n { color:#86efac; }
-  .dg-tile.p .n { color:#93c5fd; }
-  .dg-tile.s .n { color:#fca5a5; }
-  .dg-tile.d .n { color:#fcd34d; }
+  .dg-tile.c .n { color:var(--chipOkFg); }
+  .dg-tile.p .n { color:var(--chipInfoFg); }
+  .dg-tile.s .n { color:var(--chipBadFg); }
+  .dg-tile.d .n { color:var(--chipWarnFg); }
   .dg-section {
     margin-bottom:18px; border:1px solid var(--border); border-radius:8px; overflow:hidden;
   }
@@ -671,7 +697,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   .dg-section header.d { border-left: 3px solid #f59e0b; }
   .dg-section table { width:100%; border-collapse:collapse; font-size:12px; }
   .dg-section th { text-align:left; padding:6px 12px; background:#0f172a; color:var(--muted); font-size:10.5px; text-transform:uppercase; letter-spacing:0.4px; }
-  .dg-section td { padding:6px 12px; border-bottom:1px solid #1f2937; }
+  .dg-section td { padding:6px 12px; border-bottom:1px solid var(--chipNeutral); }
   .dg-section tr:last-child td { border-bottom:none; }
   .dg-empty { padding:14px 12px; color:var(--muted); font-style:italic; font-size:12px; }
   /* ── Phone layout (also what the Android APK gets) ──────────────
@@ -739,6 +765,11 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   #noteTools button { background:var(--panel2); color:var(--text); border:1px solid var(--border);
     border-radius:5px; padding:3px 9px; font:inherit; font-size:12px; cursor:pointer; }
   #noteTools button:hover { border-color:var(--accent); }
+  .g-img { position:relative; display:inline-flex; }
+  .g-img img { height:54px; width:auto; border:1px solid var(--border); border-radius:6px; display:block; }
+  .g-img button { position:absolute; top:-6px; right:-6px; width:18px; height:18px; line-height:1;
+    border-radius:50%; border:1px solid var(--border); background:var(--panel); color:var(--text);
+    font-size:11px; cursor:pointer; padding:0; }
 </style>
 </head>
 <body>
@@ -753,14 +784,14 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       <label title="Override 'today' for demo purposes" style="color:var(--muted); font-size:11.5px;">Demo today:</label>
       <input id="demoDate" type="date" style="width:140px; padding:5px 8px; background:var(--input); color:var(--text); border:1px solid var(--border); border-radius:6px; font:inherit;" />
       <button id="themeBtn" title="Switch between daylight and night" style="background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:4px 9px; font:inherit; font-size:12px; cursor:pointer;">☀︎</button>
-      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v3.3</span>
+      <span class="pill" id="buildTag" title="Build — hard-refresh (Cmd+Shift+R) if this is older than you expect" style="opacity:.75;">v3.5</span>
       <span class="pill" id="modePill">Simulated AI</span>
       <span id="savePill" title="Your data is saved in this browser" style="font-size:11.5px; color:var(--muted); white-space:nowrap;">💾 —</span>
       <select id="dataMenu" title="Saved data" style="background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font:inherit;font-size:12px;">
         <option value="">Data ▾</option>
         <option value="export">⤓ Export snapshot (.json)</option>
         <option value="import">⤒ Import snapshot…</option>
-        <option value="reset">↺ Reset to demo data</option>
+        <option value="reset">↺ Reset to sample data</option>
       </select>
       <input type="file" id="snapInput" accept=".json" style="display:none" />
       <select id="providerSel" title="Which AI answers" style="background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font:inherit;font-size:12px;">
@@ -990,7 +1021,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
             <span><i style="background:#16a34a"></i> Complete</span>
             <span><i style="background:#2563eb"></i> In progress</span>
             <span><i style="background:#dc2626"></i> Slipped</span>
-            <span><i style="background:#475569"></i> Upcoming</span>
+            <span><i style="background:var(--barUpcoming)"></i> Upcoming</span>
             <span style="margin-left:auto; color:#f59e0b">| today</span>
           </div>
         </div>
@@ -1074,11 +1105,12 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   <!-- Global ask bar: the Chat box, frozen at the BOTTOM of EVERY tab. Runs the exact
        same pipeline as the Chat tab (aiChat → applyAIResult → log), so an update typed
        here from the Gantt or the Log is applied identically and shows up in Chat history. -->
+  <div id="gImgs" style="display:none; gap:6px; padding:0 12px 6px; flex-wrap:wrap; flex:0 0 auto;"></div>
   <div id="gAns" class="ask-ans" style="display:none; margin:0 12px 6px; max-height:34vh; overflow:auto; flex:0 0 auto;"></div>
 
   <div class="ask-bar" id="globalAskBar" style="padding:8px 12px; border-top:1px solid var(--border); background:var(--panel); flex:0 0 auto;">
     <button id="gAttachBtn" title="Attach a file — spreadsheet, timeline, or free-form text. The AI reads it and updates the tracker.">📎</button>
-    <input type="file" id="gAttachInput" accept=".xlsx,.xls,.csv,.txt,.tsv,.md,.json" multiple style="display:none" />
+    <input type="file" id="gAttachInput" accept=".xlsx,.xls,.csv,.txt,.tsv,.md,.json,image/*" multiple style="display:none" />
     <input id="gAsk" placeholder="Ask, update, or 📎 attach a file — from any tab… e.g. 'DEMO-103 is 90%', 'what's overdue?'" />
     <button class="primary" id="gAskBtn">Ask AI</button>
     <button id="gAskClear" title="Hide this answer" style="display:none;">✕</button>
@@ -1489,7 +1521,7 @@ async function dbRestore(){
     addMsg("system", `Restored your saved data — <b>${projects.length}</b> projects, ` +
       `<b>${projects.reduce((n,p)=>n+((p.timeline||[]).length),0)}</b> timeline tasks` +
       (snap.savedAt ? ` (last saved ${snap.savedAt.slice(0,16).replace("T"," ")})` : "") +
-      `. Use <b>Data ▾ → Reset to demo data</b> to start over.`);
+      `. Use <b>Data ▾ → Reset to sample data</b> to start over.`);
   } else {
     renderSavePill();
     dbSave();   // seed the store so the first real edit has somewhere to go
@@ -1503,7 +1535,7 @@ async function dbResetToSeed(){
   auditLog = []; uploads = [];
   renderTable(); renderLog(); renderTimelines(); renderDigest(); renderEdit(); fillCmpStudy();
   logEvent("DATA", "Reset to demo data", `${projects.length} seed projects restored`);
-  addMsg("system", "Reset to the original demo data.");
+  addMsg("system", "Reset to the original sample data.");
   dbSave();
 }
 
@@ -3285,13 +3317,22 @@ async function aiJSON(sys, prompt, opts){
       max_tokens: maxTokens,          // note: on Opus 5 this covers thinking + answer
       system: sys,
       output_config: { effort: o.effort || "low" },
-      messages: [{ role:"user", content: prompt }]
+      messages: [{ role:"user", content: (o.images && o.images.length)
+        ? o.images.map(im => ({ type:"image",
+            source:{ type:"base64", media_type: im.mime, data: im.b64 } }))
+            .concat([{ type:"text", text: prompt }])
+        : prompt }]
+
     });
     return parseLooseJSON(claudeText(j));
   }
   const j = await geminiRaw({
     systemInstruction:{ parts:[{ text: sys }] },
-    contents:[{ parts:[{ text: prompt }] }],
+    contents:[{ parts: (o.images && o.images.length)
+      ? o.images.map(im => ({ inline_data:{ mime_type: im.mime, data: im.b64 } }))
+          .concat([{ text: prompt }])
+      : [{ text: prompt }] }],
+
     generationConfig:{ responseMimeType:"application/json", temperature:0,
                        maxOutputTokens: o.geminiMaxTokens || maxTokens,
                        thinkingConfig:{ thinkingBudget:0 } }
@@ -3313,7 +3354,7 @@ function projById(id){ if(!id) return null; const k=String(id).toLowerCase();
       || projects.find(p=>(p.aliases||[]).some(a=>a.toLowerCase()===k))
       || projects.find(p=>p.id.toLowerCase().includes(k)||k.includes(p.id.toLowerCase())); }
 
-async function aiChat(userText){
+async function aiChat(userText, images){
   // FULL READ ACCESS: every project field and every timeline field the app stores,
   // plus the activity log. If the app knows it, the AI can see it.
   const ctx = projects.map(p=>({ id:p.id, sponsor:sponsorOf(p), phase:p.phase, lead:p.lead, status:p.status, pct:p.pct,
@@ -3326,7 +3367,7 @@ async function aiChat(userText){
                                         owner:t.owner||"", level:(t.level==null?"":t.level) })) }));
   // The audit log lets it answer "what changed this week / who changed what".
   const logCtx = (auditLog||[]).slice(-120).map(e=>({ at:e.when, kind:e.what, said:e.raw, effect:e.summary }));
-  const sys='You are the AI engine of a clinical-biometrics project status tracker. Read the current tracker state and the user message, decide whether they are UPDATING the tracker or ASKING a question, and respond with ONLY JSON: {"reply":"<concise message to show in chat>","updates":[{"projectId":"<exact id>","set":{"status":"<one of: 🟢 Green | 🟡 Yellow | 🔴 Red | ⚪ On Hold>","pct":<0-100 number>,"due":"YYYY-MM-DD","lead":"<name>","next":"<next milestone>","blocker":"<text, empty string to clear>","completedDate":"YYYY-MM-DD","phase":"<phase>","sponsor":"<name>","owner":"<name>","id":"<new id — renames the project>","studyStatus":"<Startup|Enrolling|Enrollment complete|LPLV|DB Lock|Completed|On Hold|Terminated>","fpi":"YYYY-MM-DD","lplv":"YYYY-MM-DD","dbLock":"YYYY-MM-DD","csrDue":"YYYY-MM-DD","protocol":"<text>","indication":"<text>","studyPhase":"<I|I/II|II|II/III|III|IV>","nSubjects":<number>,"nSites":<number>,"cro":"<text>","biostat":"<name>","dmLead":"<name>","medMonitor":"<name>","notes":"<text>","risks":"<text>","sapStatus":"<Not started|In progress|In QC|Complete|N/A>","sapDate":"YYYY-MM-DD","shellsStatus":"<same set>","shellsDate":"YYYY-MM-DD","sdtmStatus":"<same set>","sdtmDate":"YYYY-MM-DD","adamStatus":"<same set>","adamDate":"YYYY-MM-DD","tflStatus":"<same set>","tflDate":"YYYY-MM-DD","defineStatus":"<same set>","defineDate":"YYYY-MM-DD","submissionStatus":"<same set>","submissionDate":"YYYY-MM-DD"}}],"timelineOps":[{"projectId":"<id>","op":"add|update|delete","task":"<task name or fragment to match>","start":"YYYY-MM-DD","finish":"YYYY-MM-DD","pct":<0-100>}],"deletes":[{"projectId":"<exact id>","reason":"<short>"}],"creates":[{"id":"<new project id>","lead":"<name>","phase":"<SDTM|ADaM|TFL|SAP|Analysis|Submission|other>","status":"<one of the four emoji strings>","pct":<0-100>,"next":"<next milestone>","due":"YYYY-MM-DD","blocker":"<text>","sponsor":"<name>","owner":"<name>","timeline":[{"task":"<name>","start":"YYYY-MM-DD","finish":"YYYY-MM-DD","pct":<0-100>}]}]}. RULES: In each "set" include ONLY the fields that actually change. Status MUST be one of the four exact emoji strings. Resolve ALL relative dates ("today","tomorrow","next Friday","in 2 weeks","end of June","mid-July","push by 2 weeks","slip a week","delay 3 days") against TODAY='+todayISO()+'. Match a project by exact id or alias; if you cannot tell which project, leave updates empty and ask in reply. If % reaches 100, also set completedDate to today. UPDATE TARGET — DEFAULT TO PROJECT-LEVEL: when the user reports a status, %, due date, lead, or blocker for a project (e.g. "DEMO-103 is 90%", "DEMO-201 delivered"), put it in updates[].set for that project. Use timelineOps ONLY when the user clearly refers to a specific timeline TASK. TIMELINE EDITING (plain language): "op":"add" to add a new task (include task name, start, finish, and pct if given) — e.g. "add task TFL QC round 2 to DEMO-103, start 2026-07-01 finish 2026-07-15"; "op":"update" to change an existing task — e.g. "DEMO-103 task QC + sign-off is 90%", "push DEMO-103 Final delivery to 2026-07-20". For op:"update" you MUST copy the task name EXACTLY as it appears in that project\'s timeline in the data — never invent, shorten, or paraphrase a task name; if no timeline task clearly matches the user\'s wording, do NOT guess — instead update the project or ask which task in reply. DELETING PROJECTS: use "deletes" when the user clearly asks to remove/delete/drop/archive/get rid of one or more projects (e.g. "delete DEMO-405", "remove the projects that are done", "drop DEMO-404 and DEMO-405", "clean up anything closed"). Put ONE entry per project with its exact id and a short reason. If the request describes a GROUP rather than naming ids ("delete everything that is complete", "remove the on-hold ones"), work out which projects match from the data and list each one — never delete a project that does not match. If you are not sure which projects are meant, leave "deletes" empty and ask in reply which ones. Deleting is always the user\'s call: never volunteer a deletion they did not ask for, and never delete as a side effect of an update. For pure questions, leave updates, timelineOps and deletes empty and put the answer in reply — be specific, cite the numbers/dates/owners/% from the data; you may use simple <b> and <br> HTML. Keep reply concise. You CAN and SHOULD answer time-window and delivery questions from the timeline tasks and project fields — never refuse them. Definitions relative to TODAY: a timeline task is DELIVERED/complete when its pct=100 (its finish date = the delivery date); IN PROGRESS when 0<pct<100; DUE within a window when its finish date falls in that window; SLIPPED when finish<TODAY and pct<100. A project also counts as delivered when its pct=100 or completedDate is set. Windows are calendar-based relative to TODAY: "this week"/"last week"/"next week" = Monday–Sunday weeks; "this month"/"last month" = calendar months. Example — "what did we deliver last week": list every timeline task (grouped by project) whose finish date is within last week AND pct=100, plus any project completed in that window; if none, say so plainly. STUDY RECORD: each project also carries a "study" object — clinical status (studyStatus) and key dates (fpi, lplv, dbLock, csrDue), design (protocol, indication, studyPhase, nSubjects, nSites, cro), contacts (biostat, dmLead, medMonitor), free text (notes, risks), and a status+date per biometrics deliverable (sapStatus/sapDate, shellsStatus/shellsDate, sdtmStatus/sdtmDate, adamStatus/adamDate, tflStatus/tflDate, defineStatus/defineDate, submissionStatus/submissionDate). Set ANY of these through updates[].set, and use them when answering — "studyStatus" is where the study is CLINICALLY (enrolling, DB lock) and is a different axis from "status", which is delivery health (🟢🟡🔴⚪). Never confuse the two. FULL ACCESS — you have complete READ and WRITE control of this workspace. You may create projects ("creates" — use it whenever the user asks to add/create/start/set up a new project or study, and give it a timeline if they describe one), rename or re-assign any project (put "id", "phase", "sponsor", "owner" in "set"), edit any project field, add/update/DELETE timeline tasks ("op":"delete" removes the task), and delete projects. Never say you are unable to change something — if the user asks for it, do it. The only limits: never delete anything the user did not ask you to delete, and if a request is ambiguous, ask in "reply" instead of guessing. You also receive the ACTIVITY LOG, so you can answer what changed, when, and what the user said to cause it. GENERAL PRINCIPLE: You hold the COMPLETE tracker for ALL projects plus each project\'s FULL timeline (status, %, due date, lead, sponsor, phase, blocker, completedDate, and every task with its dates and %). For ANY question, scan ALL projects and ALL tasks before answering, then give a concise SYNTHESIZED summary — counts, sensibly grouped lists, and the key numbers/dates/owners/blockers. The "blocker" field is that project\'s issue/risk — use it for questions about issues, risks, problems, what is blocked, or what needs attention. SOURCES: when an UPLOADED SOURCES block is present it tells you which file each project\'s data came from, when it was read, and the user\'s own description of it. Use it to answer provenance questions ("where did these dates come from?", "what have we loaded for DEMO-103?", "what is the newest file?"), and when a description carries a caveat, repeat that caveat alongside any number it affects rather than stating the number flatly. Each source\'s "read" field is the timestamp when the app ingested that file, formatted YYYY-MM-DD HH:MM. For newest/oldest/most-recent questions, compare those timestamps as dates — the NEWEST source is the one with the LARGEST "read" value (later date wins; only compare the time when the dates are equal). Sources are listed newest-first, so the first entry is normally the most recent. Examples you must handle: overall portfolio status, what is at risk/blocked, what is overdue or slipping, who owns what, workload per lead, status by sponsor or phase, what is due/upcoming, recently delivered, % progress, and overall summaries. NEVER reply that you can only track limited things — if the answer is derivable from this data, compute and answer it; only if a specific detail is genuinely absent, say what IS known. FORMAT: keep answers short and scannable — lead with the answer, no preamble. Use short bullet lines starting with "• ", group sensibly, wrap project IDs and key numbers/dates in <b>…</b>, and separate lines with <br>. Default to brevity.';
+  const sys='You are the AI engine of a clinical-biometrics project status tracker. Read the current tracker state and the user message, decide whether they are UPDATING the tracker or ASKING a question, and respond with ONLY JSON: {"reply":"<concise message to show in chat>","updates":[{"projectId":"<exact id>","set":{"status":"<one of: 🟢 Green | 🟡 Yellow | 🔴 Red | ⚪ On Hold>","pct":<0-100 number>,"due":"YYYY-MM-DD","lead":"<name>","next":"<next milestone>","blocker":"<text, empty string to clear>","completedDate":"YYYY-MM-DD","phase":"<phase>","sponsor":"<name>","owner":"<name>","id":"<new id — renames the project>","studyStatus":"<Startup|Enrolling|Enrollment complete|LPLV|DB Lock|Completed|On Hold|Terminated>","fpi":"YYYY-MM-DD","lplv":"YYYY-MM-DD","dbLock":"YYYY-MM-DD","csrDue":"YYYY-MM-DD","protocol":"<text>","indication":"<text>","studyPhase":"<I|I/II|II|II/III|III|IV>","nSubjects":<number>,"nSites":<number>,"cro":"<text>","biostat":"<name>","dmLead":"<name>","medMonitor":"<name>","notes":"<text>","risks":"<text>","sapStatus":"<Not started|In progress|In QC|Complete|N/A>","sapDate":"YYYY-MM-DD","shellsStatus":"<same set>","shellsDate":"YYYY-MM-DD","sdtmStatus":"<same set>","sdtmDate":"YYYY-MM-DD","adamStatus":"<same set>","adamDate":"YYYY-MM-DD","tflStatus":"<same set>","tflDate":"YYYY-MM-DD","defineStatus":"<same set>","defineDate":"YYYY-MM-DD","submissionStatus":"<same set>","submissionDate":"YYYY-MM-DD"}}],"timelineOps":[{"projectId":"<id>","op":"add|update|delete","task":"<task name or fragment to match>","start":"YYYY-MM-DD","finish":"YYYY-MM-DD","pct":<0-100>}],"deletes":[{"projectId":"<exact id>","reason":"<short>"}],"creates":[{"id":"<new project id>","lead":"<name>","phase":"<SDTM|ADaM|TFL|SAP|Analysis|Submission|other>","status":"<one of the four emoji strings>","pct":<0-100>,"next":"<next milestone>","due":"YYYY-MM-DD","blocker":"<text>","sponsor":"<name>","owner":"<name>","timeline":[{"task":"<name>","start":"YYYY-MM-DD","finish":"YYYY-MM-DD","pct":<0-100>}]}]}. RULES: In each "set" include ONLY the fields that actually change. Status MUST be one of the four exact emoji strings. Resolve ALL relative dates ("today","tomorrow","next Friday","in 2 weeks","end of June","mid-July","push by 2 weeks","slip a week","delay 3 days") against TODAY='+todayISO()+'. Match a project by exact id or alias; if you cannot tell which project, leave updates empty and ask in reply. If % reaches 100, also set completedDate to today. UPDATE TARGET — DEFAULT TO PROJECT-LEVEL: when the user reports a status, %, due date, lead, or blocker for a project (e.g. "DEMO-103 is 90%", "DEMO-201 delivered"), put it in updates[].set for that project. Use timelineOps ONLY when the user clearly refers to a specific timeline TASK. TIMELINE EDITING (plain language): "op":"add" to add a new task (include task name, start, finish, and pct if given) — e.g. "add task TFL QC round 2 to DEMO-103, start 2026-07-01 finish 2026-07-15"; "op":"update" to change an existing task — e.g. "DEMO-103 task QC + sign-off is 90%", "push DEMO-103 Final delivery to 2026-07-20". For op:"update" you MUST copy the task name EXACTLY as it appears in that project\'s timeline in the data — never invent, shorten, or paraphrase a task name; if no timeline task clearly matches the user\'s wording, do NOT guess — instead update the project or ask which task in reply. DELETING PROJECTS: use "deletes" when the user clearly asks to remove/delete/drop/archive/get rid of one or more projects (e.g. "delete DEMO-405", "remove the projects that are done", "drop DEMO-404 and DEMO-405", "clean up anything closed"). Put ONE entry per project with its exact id and a short reason. If the request describes a GROUP rather than naming ids ("delete everything that is complete", "remove the on-hold ones"), work out which projects match from the data and list each one — never delete a project that does not match. If you are not sure which projects are meant, leave "deletes" empty and ask in reply which ones. Deleting is always the user\'s call: never volunteer a deletion they did not ask for, and never delete as a side effect of an update. For pure questions, leave updates, timelineOps and deletes empty and put the answer in reply — be specific, cite the numbers/dates/owners/% from the data; you may use simple <b> and <br> HTML. Keep reply concise. You CAN and SHOULD answer time-window and delivery questions from the timeline tasks and project fields — never refuse them. Definitions relative to TODAY: a timeline task is DELIVERED/complete when its pct=100 (its finish date = the delivery date); IN PROGRESS when 0<pct<100; DUE within a window when its finish date falls in that window; SLIPPED when finish<TODAY and pct<100. A project also counts as delivered when its pct=100 or completedDate is set. Windows are calendar-based relative to TODAY: "this week"/"last week"/"next week" = Monday–Sunday weeks; "this month"/"last month" = calendar months. Example — "what did we deliver last week": list every timeline task (grouped by project) whose finish date is within last week AND pct=100, plus any project completed in that window; if none, say so plainly. IMAGES: the user may paste or attach a screenshot — typically a timeline, Gantt, schedule, spreadsheet or email. Read it carefully and act on it exactly as if they had typed its contents: extract project ids, task names, dates and percentages, and put them in updates/timelineOps/creates. Report in "reply" what you read and what you changed. If the image is unreadable or ambiguous, say so and ask — never invent dates or names that are not legible in the picture. STUDY RECORD: each project also carries a "study" object — clinical status (studyStatus) and key dates (fpi, lplv, dbLock, csrDue), design (protocol, indication, studyPhase, nSubjects, nSites, cro), contacts (biostat, dmLead, medMonitor), free text (notes, risks), and a status+date per biometrics deliverable (sapStatus/sapDate, shellsStatus/shellsDate, sdtmStatus/sdtmDate, adamStatus/adamDate, tflStatus/tflDate, defineStatus/defineDate, submissionStatus/submissionDate). Set ANY of these through updates[].set, and use them when answering — "studyStatus" is where the study is CLINICALLY (enrolling, DB lock) and is a different axis from "status", which is delivery health (🟢🟡🔴⚪). Never confuse the two. FULL ACCESS — you have complete READ and WRITE control of this workspace. You may create projects ("creates" — use it whenever the user asks to add/create/start/set up a new project or study, and give it a timeline if they describe one), rename or re-assign any project (put "id", "phase", "sponsor", "owner" in "set"), edit any project field, add/update/DELETE timeline tasks ("op":"delete" removes the task), and delete projects. Never say you are unable to change something — if the user asks for it, do it. The only limits: never delete anything the user did not ask you to delete, and if a request is ambiguous, ask in "reply" instead of guessing. You also receive the ACTIVITY LOG, so you can answer what changed, when, and what the user said to cause it. GENERAL PRINCIPLE: You hold the COMPLETE tracker for ALL projects plus each project\'s FULL timeline (status, %, due date, lead, sponsor, phase, blocker, completedDate, and every task with its dates and %). For ANY question, scan ALL projects and ALL tasks before answering, then give a concise SYNTHESIZED summary — counts, sensibly grouped lists, and the key numbers/dates/owners/blockers. The "blocker" field is that project\'s issue/risk — use it for questions about issues, risks, problems, what is blocked, or what needs attention. SOURCES: when an UPLOADED SOURCES block is present it tells you which file each project\'s data came from, when it was read, and the user\'s own description of it. Use it to answer provenance questions ("where did these dates come from?", "what have we loaded for DEMO-103?", "what is the newest file?"), and when a description carries a caveat, repeat that caveat alongside any number it affects rather than stating the number flatly. Each source\'s "read" field is the timestamp when the app ingested that file, formatted YYYY-MM-DD HH:MM. For newest/oldest/most-recent questions, compare those timestamps as dates — the NEWEST source is the one with the LARGEST "read" value (later date wins; only compare the time when the dates are equal). Sources are listed newest-first, so the first entry is normally the most recent. Examples you must handle: overall portfolio status, what is at risk/blocked, what is overdue or slipping, who owns what, workload per lead, status by sponsor or phase, what is due/upcoming, recently delivered, % progress, and overall summaries. NEVER reply that you can only track limited things — if the answer is derivable from this data, compute and answer it; only if a specific detail is genuinely absent, say what IS known. FORMAT: keep answers short and scannable — lead with the answer, no preamble. Use short bullet lines starting with "• ", group sensibly, wrap project IDs and key numbers/dates in <b>…</b>, and separate lines with <br>. Default to brevity.';
   // Provenance goes to the AI too, so it can answer "where did DEMO-103's dates come from?"
   // and weigh the user's own caveats ("dates are provisional") when it reports numbers.
   const src = uploads.map(u => ({ file:u.name, kind:u.kind, project:u.project, read:u.when, gave:u.detail, description:u.note }));
@@ -3334,7 +3375,7 @@ async function aiChat(userText){
     + (src.length ? '\n\nUPLOADED SOURCES — where this data came from. "description" is the user\'s own note about that file; treat it as authoritative context and honour any caveat in it (e.g. "dates are provisional", "superseded by rev 4"):\n'+JSON.stringify(src) : '')
     + (logCtx.length ? '\n\nACTIVITY LOG (most recent last) — what has already been changed in this workspace:\n'+JSON.stringify(logCtx) : '')
     + '\n\nUSER MESSAGE:\n'+userText;
-  return await aiJSON(sys, prompt, { maxTokens: 8192, geminiMaxTokens: 4096, effort: "low" });
+  return await aiJSON(sys, prompt, { maxTokens: 8192, geminiMaxTokens: 4096, effort: "low", images: images || [] });
 }
 
 function applyAIResult(res){
@@ -3708,7 +3749,9 @@ async function handleSend(){
   addMsg("user", text);
   const thinking = addMsg("bot", '<span style="opacity:.55">thinking…</span>');
   try{
-    const res = await aiChat(text);
+    const imgs = pendingImages.slice();
+    pendingImages = []; try{ renderPendingImages(); }catch(e){}
+    const res = await aiChat(text, imgs);
     const { summaries, unmatched, deleted } = applyAIResult(res);
     let reply = res.reply || "(done)";
     if(unmatched > 0 && summaries.length === 0)
@@ -3968,6 +4011,61 @@ function applyTheme(t){
   document.addEventListener("DOMContentLoaded", () => applyTheme(t));
 })();
 
+// ── Pasted & attached images ────────────────────────────────────────────────────
+// A screenshot of a vendor timeline is the fastest way to get data in — quicker than
+// exporting a spreadsheet. Held in memory only until sent, then cleared.
+let pendingImages = [];              // {name, mime, b64, url}
+const MAX_IMAGES = 4, MAX_IMG_BYTES = 4.5 * 1024 * 1024;
+
+function renderPendingImages(){
+  const wrap = document.getElementById("gImgs");
+  if(!wrap) return;
+  wrap.style.display = pendingImages.length ? "flex" : "none";
+  wrap.innerHTML = pendingImages.map((im,i) => `
+    <span class="g-img" title="${esc(im.name)}">
+      <img src="${im.url}" alt="${esc(im.name)}" />
+      <button data-rm="${i}" title="Remove">✕</button>
+    </span>`).join("");
+  wrap.querySelectorAll("button[data-rm]").forEach(b => b.onclick = () => {
+    pendingImages.splice(Number(b.dataset.rm), 1); renderPendingImages();
+  });
+}
+
+function addImageFile(file){
+  return new Promise(resolve => {
+    if(pendingImages.length >= MAX_IMAGES){ resolve("Only "+MAX_IMAGES+" images at a time."); return; }
+    if(file.size > MAX_IMG_BYTES){ resolve(`"${file.name||"image"}" is ${(file.size/1048576).toFixed(1)} MB — the limit is 4.5 MB.`); return; }
+    const r = new FileReader();
+    r.onload = () => {
+      const url = String(r.result);
+      pendingImages.push({ name: file.name || "pasted image", mime: file.type || "image/png",
+                           b64: url.slice(url.indexOf(",")+1), url });
+      renderPendingImages(); resolve(null);
+    };
+    r.onerror = () => resolve("Could not read that image.");
+    r.readAsDataURL(file);
+  });
+}
+
+async function handleImagePaste(e){
+  const items = (e.clipboardData && e.clipboardData.items) || [];
+  const files = [];
+  for(const it of items){
+    if(it.kind === "file" && /^image\//.test(it.type)){ const f = it.getAsFile(); if(f) files.push(f); }
+  }
+  if(!files.length) return;                 // plain text paste — leave it alone
+  e.preventDefault();
+  const errs = (await Promise.all(files.map(addImageFile))).filter(Boolean);
+  const ans = document.getElementById("gAns");
+  if(errs.length){ ans.style.display="block"; ans.innerHTML = "⚠️ " + errs.join("<br>"); }
+  else if(pendingImages.length){
+    ans.style.display="block";
+    ans.innerHTML = `<span style="opacity:.75">📷 ${pendingImages.length} image${pendingImages.length>1?"s":""} attached. `
+      + `Add a note if you like (e.g. "this is the updated plan for DEMO-103"), then press Ask AI.</span>`;
+    document.getElementById("gAskClear").style.display = "";
+  }
+}
+
 // ── Global ask bar (top of every tab) ───────────────────────────────────────────
 // Deliberately delegates to handleSend() rather than reimplementing it: same AI call,
 // same apply-to-tracker logic, same undo, same Activity Log entry. The only extra job
@@ -3978,7 +4076,7 @@ async function globalAsk(){
   const clr = document.getElementById("gAskClear");
   const btn = document.getElementById("gAskBtn");
   const text = box.value.trim();
-  if(!text) return;
+  if(!text && !pendingImages.length) return;   // an attached image on its own is enough
 
   box.value = "";
   btn.disabled = true;
@@ -3987,7 +4085,8 @@ async function globalAsk(){
   clr.style.display = "";
 
   // Route through the Chat tab's own input + handler — one code path, no drift.
-  document.getElementById("userInput").value = text;
+  document.getElementById("userInput").value = text ||
+    "Read the attached image(s) and update the tracker with whatever they show.";
   try{
     await handleSend();
     const bubbles = document.querySelectorAll("#chat .msg.bot, #chat .bot");
@@ -4059,10 +4158,29 @@ async function attachFromChat(files){
 }
 
 document.getElementById("gAttachBtn").onclick = () => document.getElementById("gAttachInput").click();
-document.getElementById("gAttachInput").onchange = e => {
+document.getElementById("gAttachInput").onchange = async e => {
   const fs = [...e.target.files]; e.target.value = "";   // allow re-picking the same file
-  attachFromChat(fs);
+  const imgs = fs.filter(f => /^image\//.test(f.type));
+  const rest = fs.filter(f => !/^image\//.test(f.type));
+  if(imgs.length){
+    const errs = (await Promise.all(imgs.map(addImageFile))).filter(Boolean);
+    const ans = document.getElementById("gAns");
+    ans.style.display = "block";
+    ans.innerHTML = errs.length ? "⚠️ " + errs.join("<br>")
+      : `<span style="opacity:.75">📷 ${pendingImages.length} image${pendingImages.length>1?"s":""} attached — press Ask AI.</span>`;
+    document.getElementById("gAskClear").style.display = "";
+  }
+  if(rest.length) attachFromChat(rest);
 };
+document.getElementById("gAsk").addEventListener("paste", handleImagePaste);
+(function pasteAnywhere(){
+  // Cmd+V with the page focused (not typing in a field) should still attach the screenshot.
+  document.addEventListener("paste", e => {
+    const t = e.target;
+    if(t && (t.id === "gAsk" || t.id === "noteEditor" || /^(INPUT|TEXTAREA)$/.test(t.tagName||""))) return;
+    handleImagePaste(e);
+  });
+})();
 
 const _sp=document.getElementById("studyPick");
 if(_sp) _sp.onchange = e => { studySel = e.target.value; renderStudy(); };
@@ -4092,11 +4210,14 @@ if(_tb) _tb.onclick = () => applyTheme(document.documentElement.getAttribute("da
     noteTouch();
   });
 })();
+
+
 document.getElementById("gAskBtn").onclick = globalAsk;
 document.getElementById("gAsk").addEventListener("keydown", e => { if(e.key === "Enter") globalAsk(); });
 document.getElementById("gAskClear").onclick = () => {
   document.getElementById("gAns").style.display = "none";
   document.getElementById("gAskClear").style.display = "none";
+  pendingImages = []; renderPendingImages();
 };
 
 
@@ -4609,7 +4730,7 @@ document.getElementById("exportBtn").onclick = () => {
   // 4) Info sheet
   const info = [
     ["Exported", new Date().toLocaleString()],
-    ["Demo today", todayISO()],
+    ["Working today", todayISO()],
     ["Total projects", projects.length],
     ["Projects with timelines", projects.filter(p => p.timeline?.length).length],
     ["Total log entries", auditLog.length],
@@ -4643,8 +4764,8 @@ demoDateEl.onchange = () => {
   renderTable();
   if(mode === "plan") renderPlan();
   addMsg("system", demoToday
-    ? `Demo "today" set to ${demoToday}. All time windows and slip detection now use this date.`
-    : `Demo "today" reset to real date.`);
+    ? `Working "today" set to ${demoToday}. All time windows and slip detection now use this date.`
+    : `Working "today" reset to the real date.`);
 };
 
 // On Android, hide the controls whose browser API doesn't exist there, and say so

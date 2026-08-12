@@ -1,7 +1,7 @@
-# PP Tracker AI — public demo
+# PP Tracker
 
-A single-file, offline-capable web app for tracking clinical-biometrics project status in plain
-English. **Live demo → https://00timmer.github.io/pp-tracker-demo/**
+A single-file, offline-capable project-management app for tracking clinical-biometrics project status in plain
+English. **Open it → https://00timmer.github.io/pp-tracker-demo/**
 
 Everything is one `index.html` — no build step, no backend, no CDN. Open it locally or use the link.
 
@@ -14,7 +14,13 @@ Everything is one `index.html` — no build step, no backend, no CDN. Open it lo
 | **📥 Data** | **Import**: drop any spreadsheet or text file — a standard timeline is parsed directly, anything else is handed to the AI, which works out which columns are the task, dates and % complete. **Edit**: spreadsheet-style editing of projects and timelines. |
 | **Plan** | Three lenses on the schedule — 📊 Gantt, 📋 Digest (windowed buckets), 🗺 Overview (an executive roadmap you can export as PNG for slides). |
 | **🎯 Review** | Scores every project against a six-point rubric — record quality, staleness, progress vs. elapsed time, substance, blockers, duplication — and ranks them worst-first. |
+| **📋 Study** | The whole record for one study — clinical status (Enrolling → DB Lock → Completed), FPI/LPLV/database-lock/CSR dates, protocol, indication, phase, subjects, sites, CRO, contacts, and a status + date for every biometrics deliverable (SAP, shells, SDTM, ADaM, TFL, define.xml, submission). |
+| **📝 Notes** | Free-form notebook pages. Write anything, then have the AI summarise it into key points, decisions, actions and open questions. |
 | **Activity Log** | Every change, with the raw text that caused it. |
+
+The chat bar sits at the bottom of every tab — ask a question, type an update, attach a spreadsheet with 📎, or just paste a screenshot of a timeline and the AI will read it.
+
+Starts in a daylight theme; the ☀︎/☾ button in the header switches to night.
 
 Your data is saved in the browser (IndexedDB) and can be exported as a `.json` snapshot or `.xlsx`.
 
