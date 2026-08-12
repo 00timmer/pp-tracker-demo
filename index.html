@@ -793,7 +793,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
         <option value="reset">↺ Reset to sample data</option>
       </select>
       <input type="file" id="snapInput" accept=".json" style="display:none" />
-      <input id="apiKey" type="password" placeholder="Paste an API key, or your NVIDIA Worker URL" title="The prefix tells the app who the provider is: AIza… Gemini · sk-ant-… Claude · nvapi-… NVIDIA" />
+      <input id="apiKey" type="password" placeholder="Optional — paste a Gemini or Claude key to switch" title="The prefix tells the app who the provider is: AIza… Gemini · sk-ant-… Claude · nvapi-… NVIDIA" />
       <select id="nvModel" title="Which NVIDIA model answers" style="display:none; background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:12px;padding:5px 8px;font:inherit;font-size:12px;"></select>
       <button class="primary" id="connectBtn" style="padding:5px 10px; font-size:12px;">Connect</button>
       <span id="connStatus" style="font-size:11.5px; font-weight:600; white-space:nowrap;"></span>
@@ -3269,7 +3269,10 @@ const CLAUDE_MODEL = "claude-opus-5";
 // Verified live against NVIDIA's catalogue — /v1/models lists these exact ids.
 const NVIDIA_MODELS = ["z-ai/glm-5.2", "minimaxai/minimax-m3", "meta/llama-3.1-70b-instruct"];
 let NVIDIA_MODEL = NVIDIA_MODELS[0];
-let nvidiaProxy = "";   // https://….workers.dev — the Worker holds the key, not this page
+// Default proxy. Deliberately public: this is a static page, so anything it needs
+// at runtime is readable by anyone. The Worker holds the API key server-side and is
+// rate-limited, so the worst case is someone consuming quota, never a leaked key.
+let nvidiaProxy = "https://pp-tracker-nvidia.pp-tracker-demo.workers.dev";
 async function nvidiaRaw(body){
   if(!nvidiaProxy) throw new Error("NVIDIA needs a proxy. Their API sends no CORS header, so a page "
     + "cannot call it directly. Deploy worker.js from this repo to Cloudflare, then paste the "
@@ -3291,7 +3294,7 @@ async function nvidiaRaw(body){
 }
 function nvidiaText(j){ const c=(j&&j.choices||[])[0]; return (c && c.message && c.message.content) || ""; }
 
-let aiProvider = "gemini";   // "gemini" | "claude" | "nvidia"
+let aiProvider = "nvidia";   // "gemini" | "claude" | "nvidia" — NVIDIA works out of the box | "nvidia"
 let claudeKey = "";          // session-only; never written to disk or IndexedDB
 
 async function claudeRaw(body){
@@ -3547,7 +3550,7 @@ function renderProvider(){
     key.style.borderColor = claudeKey ? "" : "var(--warn)";
     pill.title = "Claude " + CLAUDE_MODEL + " · your key, this session only";
   } else if(aiProvider === "nvidia"){
-    key.placeholder = nvidiaProxy ? "NVIDIA proxy set" : "Paste an API key, or your NVIDIA Worker URL";
+    key.placeholder = nvidiaProxy ? "NVIDIA ready — paste a Gemini/Claude key to switch" : "Paste an API key, or your NVIDIA Worker URL";
     key.style.borderColor = nvidiaProxy ? "" : "var(--warn)";
     pill.title = "NVIDIA " + NVIDIA_MODEL + " · via your Worker";
   } else {

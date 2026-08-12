@@ -55,18 +55,28 @@ Browser ◀──── + access-control-allow-origin ────────�
 
 The browser never sees the key.
 
-## Security: treat the Worker URL as a password
+## Security model
 
-`ALLOWED_ORIGINS` in `worker.js` restricts which origins may call the Worker. That stops **other
-websites** from using it, because browsers set `Origin` honestly.
+**The API key is never exposed.** It lives in the Cloudflare secret store and is attached
+server-side. No amount of poking at the page or the Worker reveals it. That property holds no
+matter who calls the Worker.
 
-It does **not** stop someone holding the URL — a command-line client can forge any `Origin`
-header. So anyone with your Worker URL can spend your NVIDIA quota.
+**The Worker URL is public**, because the app ships with a default proxy and a static page cannot
+keep a secret. Two things bound the consequences:
 
-- Keep the URL private; do not commit it or post it publicly.
-- Edit `ALLOWED_ORIGINS` if you host the page anywhere other than the default GitHub Pages URL.
-- For multi-user or shared use, add a token check to the Worker, or put Cloudflare Access in
-  front of it.
+- `ALLOWED_ORIGINS` rejects calls from other websites — browsers set `Origin` honestly, so this
+  stops a different site embedding your proxy. It does *not* stop a client that forges the header.
+- A per-IP **rate limit of 20 requests/minute** (the `RATE_LIMITER` binding in `wrangler.toml`)
+  caps what any single caller can consume. Verified: 30 concurrent requests → 5 served, 25 got
+  `429`.
+
+So the realistic worst case is a stranger consuming some of your NVIDIA quota, not a stolen
+credential. On a free-tier NVIDIA key that means the app stops answering until the quota resets.
+
+**Do not put a billed NVIDIA key behind a public default proxy.** If the key has real spend
+attached, either remove the default from `index.html` and have users paste their own proxy URL, or
+put a token check or Cloudflare Access in front of the Worker.
+
 
 ## Models
 
