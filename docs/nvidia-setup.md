@@ -89,6 +89,30 @@ curl https://integrate.api.nvidia.com/v1/models -H "Authorization: Bearer nvapi-
 The app ships with `z-ai/glm-5.2` (default), `minimaxai/minimax-m3` and
 `meta/llama-3.1-70b-instruct`. Edit `NVIDIA_MODELS` in `index.html` to change the list.
 
+### Measured speed
+
+Same prompt, `max_tokens:150`, `temperature:0`, ~29 completion tokens, five runs per model.
+Median rather than mean, because the outliers are large.
+
+| Model | Median | Range | Success |
+|---|---|---|---|
+| **`z-ai/glm-5.2`** | **3.05s** | 1.1–5.8s | 5/5 |
+| `minimaxai/minimax-m3` | ~2.6s (2 samples) | 0.6–4.5s | 2/5, then 0/6 |
+| `meta/llama-3.1-70b-instruct` | 10.98s | 3.6–122s | 4/5 |
+
+GLM 5.2 is the default because it never failed and had the tightest spread.
+
+`minimaxai/minimax-m3` looks quick in the samples that completed, but it is **throttled**, not
+fast: six consecutive `429 Too Many Requests` at 15-second spacing. Those come back in NVIDIA's
+error shape (`{"status":429,…}`), not the Worker's rate limit (`{"error":"Rate limit reached…"}`),
+so the ceiling is upstream. Expect it to be unavailable on the free tier.
+
+`meta/llama-3.1-70b-instruct` had two runs over 120 seconds — cold starts on shared capacity — so
+its median understates how bad the tail is.
+
+Small samples on shared free-tier capacity; absolute numbers will drift with load, though the
+ordering held across every round.
+
 ## Rotating the key
 
 ```
