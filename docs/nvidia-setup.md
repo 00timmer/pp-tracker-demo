@@ -113,6 +113,33 @@ its median understates how bad the tail is.
 Small samples on shared free-tier capacity; absolute numbers will drift with load, though the
 ordering held across every round.
 
+### Images
+
+`z-ai/glm-5.2` **accepts an image and cannot read it** — it answers `Unknown` rather than failing,
+so the app appears to have no vision at all. Attachments are therefore routed to a vision model
+regardless of the picker; the picker still governs text.
+
+| Model | Control image |
+|---|---|
+| `nvidia/nemotron-nano-12b-v2-vl` | **2s, correct** — used for attachments |
+| `meta/llama-3.2-11b-vision-instruct` | 6s, correct — retried if the first returns 5xx |
+| `meta/llama-3.2-90b-vision-instruct` | timed out at 90s |
+| `microsoft/phi-3-vision-128k-instruct` | 404 |
+| `meta/llama-3.1-70b-instruct` | HTTP 400, "is not a multimodal model" |
+
+Images are scaled to 1600px on the long edge and re-encoded as JPEG 0.85 before sending. Sending
+full-resolution screenshots was the most likely cause of
+`EngineCore encountered an issue` — a crash inside NVIDIA's engine, returned as a 500 — which
+could not be reproduced at smaller sizes. Screenshot text stays legible at 1600px.
+
+Note that reading and shrinking an image is asynchronous: both send paths wait for it, because
+pasting and sending immediately otherwise dispatched the request before the image was attached.
+
+### Switching provider
+
+The model picker only renders while NVIDIA is active, so pasting a Gemini or Claude key hides it.
+Click the provider pill in the header, or say "use nvidia", to switch back.
+
 ## Rotating the key
 
 ```
